@@ -194,7 +194,6 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 .rare-status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:4px 0;}
 .story-text{font-size:12px;color:#c8e6c8;line-height:1.7;margin:8px 0;text-align:left;padding:0 4px;}
 .threat-text{font-size:10px;color:#ffb060;margin:4px 0;}
-.charge-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:0px;color:rgba(255,255,255,0.85);pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.8);}
 .daily-mission-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);}
 .daily-mission-label{flex:1;font-size:12px;color:var(--text);}
 .daily-progress-bar-bg{width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
@@ -473,7 +472,7 @@ let G={
 };
 let _uid=1;
 function mkItem(chain,level){ return {chain,level,uid:_uid++}; }
-function mkGen(chain){ return {chain,isGenerator:true,uid:'gen_'+chain,charges:3,maxCharges:3,lastRechargeTime:Date.now()}; }
+function mkGen(chain){ return {chain,isGenerator:true,uid:'gen_'+chain}; }
 function mkSpecial(type){ return {isSpecial:true,type,uid:_uid++}; }
 
 // ── BOARD RENDER CACHE ──────────────────────
@@ -787,36 +786,16 @@ function nearestEmpty(fromIdx){
 }
 function tapGenerator(idx){
   var gen=G.board[idx]; if(!gen||!gen.isGenerator) return;
-  if(gen.charges===undefined) gen.charges=3;
-  if(gen.charges<=0){ toast('충전 중이에요! ⏳ 잠시 후 다시 시도해주세요.'); playSfx('error'); return; }
   if(!spendEnergy(1)) return;
-  gen.charges--;
   playSfx('tap');
   var e=nearestEmpty(idx);
   if(e===-1){
     // 보드 가득 → 인벤토리로
-    if(!addToInventory(mkItem(gen.chain,1))){ addEnergy(1); gen.charges++; return; }
-    addScore(1); updateCell(idx); save(); return;
+    if(!addToInventory(mkItem(gen.chain,1))){ addEnergy(1); return; }
+    addScore(1); save(); return;
   }
   G.board[e]=mkItem(gen.chain,1);
-  save(); updateCell(idx); updateCell(e); addScore(1); renderQuests();
-}
-function rechargeGenerators(){
-  let changed=false;
-  G.board.forEach(item=>{
-    if(!item||!item.isGenerator) return;
-    if(item.charges===undefined){ item.charges=3; item.maxCharges=3; item.lastRechargeTime=Date.now(); changed=true; return; }
-    if(item.charges>=(item.maxCharges||3)){ item.lastRechargeTime=Date.now(); return; }
-    const ms=300000;
-    const elapsed=Date.now()-(item.lastRechargeTime||Date.now());
-    const gained=Math.floor(elapsed/ms);
-    if(gained>0){
-      item.charges=Math.min(item.maxCharges||3,item.charges+gained);
-      item.lastRechargeTime=(item.lastRechargeTime||Date.now())+gained*ms;
-      changed=true;
-    }
-  });
-  if(changed){ saveNow(); renderBoard(); }
+  save(); updateCell(e); addScore(1); renderQuests();
 }
 function tapSpecial(idx){
   const item=G.board[idx]; if(!item||!item.isSpecial) return;
@@ -1189,11 +1168,8 @@ function updateCell(idx){
     if(item.isGenerator){
       cell.classList.add('cell-gen');
       cell.style.cssText='background:'+ch.bg+';border-color:'+ch.color+';color:'+ch.color;
-      if(item.charges===undefined) item.charges=item.maxCharges||3;
-      const dots='•'.repeat(item.charges)+'◦'.repeat((item.maxCharges||3)-item.charges);
       const genIcon=ch.genImg?'<img src="'+((_imgCache[ch.genImg]&&_imgCache[ch.genImg]!=='loading')?_imgCache[ch.genImg]:ch.genImg)+'" alt="'+ch.name+'">':(it?it.emoji:'?');
       cell.innerHTML='<div class="item-emoji">'+genIcon+'</div>'
-        +'<div class="charge-dots">'+dots+'</div>'
         +'<div class="gen-lbl" style="color:'+ch.color+'">'+(ch.isBase?'생산소':'서식지')+'</div>';
     } else {
       const lvColor=LV_COLORS[item.level-1]||ch.color;
@@ -1367,7 +1343,6 @@ function init(){
   } else { renderQuests(); }
   setInterval(updateEnergyUI, 1000);
   setInterval(()=>{ regenEnergy(); updateEnergyUI(); }, 30000);
-  setInterval(rechargeGenerators, 60000);
   initDrag();
   preloadAllImages();
   document.addEventListener('touchstart', resumeAudio, {once:true});
