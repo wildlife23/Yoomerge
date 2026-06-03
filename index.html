@@ -74,20 +74,40 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 .cell-holding{box-shadow:0 0 0 3px rgba(255,80,80,0.7)!important;transition:box-shadow 0.1s!important;}
 
 /* ── CELLS ──────────────────────────────── */
-.cell{aspect-ratio:1;border-radius:10px;border:2.5px solid transparent;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;transition:transform 0.1s,box-shadow 0.15s;touch-action:none;}
-.cell-empty{background:#1a3020;border-color:#2a4030;}
-.cell-filled{}
+.cell{aspect-ratio:1;border-radius:10px;border:2px solid transparent;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;transition:transform 0.1s,box-shadow 0.15s;touch-action:none;}
+/* 빈 칸: 반투명 어두운 박스로 위치 표시 */
+.cell-empty{background:rgba(0,0,0,0.28);border-color:rgba(255,255,255,0.07);border-radius:10px;}
+/* 채워진 칸: 배경 없음 - 아이템만 표시 */
+.cell-filled{background:transparent!important;border-color:transparent!important;}
 .cell-dragging{opacity:0.3;}
-.cell-gen{cursor:pointer;border-style:dashed!important;}
-.cell-gen::after{content:'▶';position:absolute;bottom:2px;right:3px;font-size:8px;opacity:0.6;}
+/* 생산소/서식지: 약한 점선 테두리만 */
+.cell-gen{cursor:pointer;background:rgba(0,0,0,0.22)!important;border:1.5px dashed rgba(255,255,255,0.22)!important;border-radius:10px!important;}
+.cell-gen::after{content:'▶';position:absolute;bottom:2px;right:3px;font-size:8px;opacity:0.7;color:#fff;text-shadow:0 0 3px rgba(0,0,0,0.8);}
 .cell-gen:active{filter:brightness(1.4);}
-.cell-special{cursor:pointer;border-style:dotted!important;}
+.cell-special{cursor:pointer;background:rgba(0,0,0,0.22)!important;border:1.5px dotted rgba(255,255,255,0.22)!important;border-radius:10px!important;}
 .cell-special:active{filter:brightness(1.4);}
 .cell-rare{animation:rareGlow 2s ease-in-out infinite alternate;}
-@keyframes rareGlow{from{box-shadow:0 0 6px 2px currentColor;}to{box-shadow:0 0 16px 4px currentColor;}}
+@keyframes rareGlow{from{filter:drop-shadow(0 0 6px gold);}to{filter:drop-shadow(0 0 14px gold);}}
 
-/* 이모지: 셀의 대부분을 채움 */
-.item-emoji{font-size:clamp(20px,8vw,38px);line-height:1;pointer-events:none;}
+/* 아이템: 셀 가득 채우기 */
+.item-emoji{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:clamp(24px,10vw,46px);line-height:1;pointer-events:none;}
+.item-emoji img{width:88%;height:88%;object-fit:contain;pointer-events:none;display:block;}
+.inv-item-emoji{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:clamp(16px,5vw,26px);}
+.inv-item-emoji img{width:82%;height:82%;object-fit:contain;pointer-events:none;display:block;}
+.cel-emoji img{width:68px;height:68px;object-fit:contain;display:block;margin:0 auto 10px;animation:pop 0.4s ease;}
+.gen-select-btn .ge img{width:26px;height:26px;object-fit:contain;display:block;margin:0 auto;}
+/* 보드 배경 */
+#board-container{background-image:url('image/기본 게임 보드 배경_1.png');background-size:cover;background-position:center;}
+/* 보드 그리드 영역에 반투명 어두운 오버레이 (아이템-배경 구분) */
+#board{background:rgba(0,0,0,0.18);border-radius:12px;padding:4px;}
+/* 상태바 아이콘 */
+#energy-wrap img.stat-ico{width:18px;height:18px;object-fit:contain;vertical-align:middle;}
+#diamond-wrap img.stat-ico{width:16px;height:16px;object-fit:contain;vertical-align:middle;}
+/* 인벤토리 잠금 칸 */
+.inv-cell-locked{background:rgba(0,0,0,0.45);border:1.5px solid rgba(255,200,0,0.3);cursor:pointer;}
+.inv-cell-locked:active{filter:brightness(1.3);}
+.inv-lock-ico{font-size:14px;display:block;line-height:1;}
+.inv-lock-cost{font-size:8px;color:#f0c040;display:block;line-height:1.3;}
 
 /* 레벨 뱃지: 우하단 작은 숫자 */
 .lv-badge{
@@ -188,7 +208,7 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 <!-- STATUS BAR -->
 <div id="status-bar">
   <div id="energy-wrap" onclick="showEnergyModal()">
-    <span class="ico">⚡</span><span id="energy-text">100/100</span>
+    <img src="image/에너지_1.png" class="stat-ico" alt="⚡"><span id="energy-text">100/100</span>
   </div>
   <div id="score-wrap">
     <span id="score-text">0점</span>
@@ -196,7 +216,7 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
     <span id="score-goal-text">목표 300점</span>
   </div>
   <div id="diamond-wrap" onclick="showShop()">
-    <span class="ico">💎</span><span id="diamond-text">5</span>
+    <img src="image/다이아몬드_1.png" class="stat-ico" alt="💎"><span id="diamond-text">5</span>
   </div>
   <button id="shop-btn" onclick="showShop()">🛒 상점</button>
 </div>
@@ -228,45 +248,149 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 // 레벨별 테두리 색상: Lv1~6
 const LV_COLORS=['#888888','#27ae60','#2980b9','#8e44ad','#e67e22','#f0c040'];
 
+// ── IMAGE BACKGROUND REMOVAL ─────────────────
+const _imgCache={};
+
+function processImg(src, callback){
+  if(_imgCache[src]&&_imgCache[src]!=='loading'){ callback(_imgCache[src]); return; }
+  if(_imgCache[src]==='loading') return;
+  _imgCache[src]='loading';
+  const img=new Image();
+  img.onload=function(){
+    const SIZE=256;
+    const c=document.createElement('canvas');
+    c.width=SIZE; c.height=SIZE;
+    const ctx=c.getContext('2d');
+    ctx.drawImage(img,0,0,SIZE,SIZE);
+    const id=ctx.getImageData(0,0,SIZE,SIZE);
+    _removeBg(id);
+    ctx.putImageData(id,0,0);
+    _imgCache[src]=c.toDataURL();
+    callback(_imgCache[src]);
+  };
+  img.onerror=function(){ _imgCache[src]=src; callback(src); };
+  img.src=src;
+}
+
+function _removeBg(imageData){
+  const d=imageData.data, w=imageData.width, h=imageData.height;
+  const corners=[0,w-1,w*(h-1),w*h-1];
+  // 코너 색상 수집
+  const bgColors=corners.map(p=>({r:d[p*4],g:d[p*4+1],b:d[p*4+2]}));
+  // 코너가 비회색이면(장면 이미지) 배경 제거 스킵
+  const isGray=bgColors.every(c=>Math.max(Math.abs(c.r-c.g),Math.abs(c.g-c.b),Math.abs(c.r-c.b))<25);
+  if(!isGray) return;
+  // 체크보드: 4개 코너에 밝은/어두운 두 회색이 포함 → 모두 기준색으로 사용
+  const thresh=38;
+  const visited=new Uint8Array(w*h);
+  const queue=new Int32Array(w*h);
+  let head=0,tail=0;
+  for(const p of corners){if(!visited[p]){visited[p]=1;queue[tail++]=p;}}
+  while(head<tail){
+    const p=queue[head++];
+    const i=p*4;
+    const r=d[i],g=d[i+1],b=d[i+2];
+    // 4개 코너 색 중 하나라도 threshold 이내면 배경으로 판정
+    const isBg=bgColors.some(c=>Math.abs(r-c.r)<=thresh&&Math.abs(g-c.g)<=thresh&&Math.abs(b-c.b)<=thresh);
+    if(isBg){
+      d[i+3]=0;
+      const x=p%w,y=Math.floor(p/w);
+      if(x>0&&!visited[p-1]){visited[p-1]=1;queue[tail++]=p-1;}
+      if(x<w-1&&!visited[p+1]){visited[p+1]=1;queue[tail++]=p+1;}
+      if(y>0&&!visited[p-w]){visited[p-w]=1;queue[tail++]=p-w;}
+      if(y<h-1&&!visited[p+w]){visited[p+w]=1;queue[tail++]=p+w;}
+    }
+  }
+}
+
+function preloadAllImages(){
+  const srcs=[];
+  Object.values(CHAINS).forEach(ch=>{
+    if(ch.genImg) srcs.push(ch.genImg);
+    ch.items.forEach(it=>{ if(it.img) srcs.push(it.img); });
+  });
+  Object.values(SPECIALS).forEach(sp=>{ if(sp.img) srcs.push(sp.img); });
+  // 상태바 아이콘
+  const statImgs=['image/에너지_1.png','image/다이아몬드_1.png'];
+  statImgs.forEach(s=>srcs.push(s));
+
+  let i=0;
+  function next(){
+    if(i>=srcs.length) return;
+    const src=srcs[i++];
+    processImg(src,(result)=>{
+      // 상태바 아이콘 즉시 DOM 업데이트
+      if(src==='image/에너지_1.png'){
+        const el=document.querySelector('#energy-wrap img.stat-ico');
+        if(el) el.src=result;
+      } else if(src==='image/다이아몬드_1.png'){
+        const el=document.querySelector('#diamond-wrap img.stat-ico');
+        if(el) el.src=result;
+      }
+      renderBoard(); renderInventory();
+      setTimeout(next,0);
+    });
+  }
+  setTimeout(next,0);
+}
+
+// 이미지 or 이모지 HTML 반환 헬퍼
+function itmHtml(it, cls){
+  if(it&&it.img){
+    const cached=_imgCache[it.img];
+    const s=(cached&&cached!=='loading')?cached:it.img;
+    return '<img src="'+s+'" alt="'+it.name+'" class="'+cls+'">';
+  }
+  return '<span>'+(it?it.emoji:'?')+'</span>';
+}
+function spHtml(sp, cls){
+  if(sp&&sp.img){
+    const cached=_imgCache[sp.img];
+    const s=(cached&&cached!=='loading')?cached:sp.img;
+    return '<img src="'+s+'" alt="'+sp.name+'" class="'+cls+'">';
+  }
+  return '<span>'+sp.emoji+'</span>';
+}
+
 const SPECIALS={
-  energy_pack:  {type:'energy_pack',  emoji:'⚡',name:'에너지 팩',   color:'#90ee90',bg:'#0a240a'},
-  diamond_shard:{type:'diamond_shard',emoji:'💎',name:'다이아 조각', color:'#a0a0ff',bg:'#0a0a30'},
-  alt_habitat:  {type:'alt_habitat',  emoji:'🌊',name:'대체 서식지', color:'#40d0d0',bg:'#0a2028'},
+  energy_pack:  {type:'energy_pack',  emoji:'⚡',img:'image/에너지부스트_1.png', name:'에너지 팩',   color:'#90ee90',bg:'#0a240a'},
+  diamond_shard:{type:'diamond_shard',emoji:'💎',img:'image/다이아몬드_1.png',   name:'다이아 조각', color:'#a0a0ff',bg:'#0a0a30'},
+  alt_habitat:  {type:'alt_habitat',  emoji:'🌊',img:'image/대체서식지_1.png',   name:'대체 서식지', color:'#40d0d0',bg:'#0a2028'},
 };
 
 const CHAINS={
-  equipment:{id:'equipment',name:'조사장비',isBase:true,color:'#4a9fe4',bg:'#0e2848',items:[
-    {level:1,name:'낡은 쌍안경',emoji:'🔭'},{level:2,name:'쌍안경',emoji:'🔭'},
-    {level:3,name:'카메라트랩',emoji:'📷'},{level:4,name:'GPS 추적기',emoji:'📡'},
-    {level:5,name:'드론',emoji:'🚁'},{level:6,name:'위성추적기',emoji:'🛰️'}]},
-  researcher:{id:'researcher',name:'연구원',isBase:true,color:'#b06ad0',bg:'#240e38',items:[
-    {level:1,name:'인턴',emoji:'🧑'},{level:2,name:'보조연구원',emoji:'📋'},
-    {level:3,name:'현장조사원',emoji:'🧑‍🔬'},{level:4,name:'야생생물 전문가',emoji:'👨‍🔬'},
-    {level:5,name:'보전생물학자',emoji:'👩‍🔬'},{level:6,name:'수석연구원',emoji:'🏆'}]},
-  amphibian:{id:'amphibian',name:'양서류',chapter:1,color:'#2ecc71',bg:'#0a2c18',items:[
-    {level:1,name:'개구리 알',emoji:'🫧'},{level:2,name:'올챙이',emoji:'🐟'},
-    {level:3,name:'변태 개구리',emoji:'🐸'},{level:4,name:'어린 개구리',emoji:'🐸'},
-    {level:5,name:'번식 성체',emoji:'🐸'},{level:6,name:'수원청개구리',emoji:'🐸',rare:true}]},
-  fish:{id:'fish',name:'어류',chapter:2,color:'#1ee0b0',bg:'#0a2c24',items:[
-    {level:1,name:'물고기 알',emoji:'🫧'},{level:2,name:'치어',emoji:'🐟'},
-    {level:3,name:'어린 물고기',emoji:'🐟'},{level:4,name:'아성어',emoji:'🐠'},
-    {level:5,name:'번식 성어',emoji:'🐠'},{level:6,name:'흰수마자',emoji:'🐡',rare:true}]},
-  bird:{id:'bird',name:'조류',chapter:2,color:'#f09030',bg:'#301808',items:[
-    {level:1,name:'새 알',emoji:'🥚'},{level:2,name:'부화 새끼',emoji:'🐣'},
-    {level:3,name:'어린 새',emoji:'🐤'},{level:4,name:'아성조',emoji:'🐦'},
-    {level:5,name:'성조',emoji:'🦅'},{level:6,name:'황새',emoji:'🦢',rare:true}]},
+  equipment:{id:'equipment',name:'조사장비',isBase:true,color:'#4a9fe4',bg:'#0e2848',genImg:'image/조사장비_생산.png',items:[
+    {level:1,name:'낡은 쌍안경',emoji:'🔭',img:'image/조사장비_1.png'},{level:2,name:'쌍안경',emoji:'🔭',img:'image/조사장비_2.png'},
+    {level:3,name:'카메라트랩',emoji:'📷',img:'image/조사장비_3.png'},{level:4,name:'GPS 추적기',emoji:'📡',img:'image/조사장비_4.png'},
+    {level:5,name:'드론',emoji:'🚁',img:'image/조사장비_5.png'},{level:6,name:'위성추적기',emoji:'🛰️',img:'image/조사장비_6.png'}]},
+  researcher:{id:'researcher',name:'연구원',isBase:true,color:'#b06ad0',bg:'#240e38',genImg:'image/연구원_생산.png',items:[
+    {level:1,name:'인턴',emoji:'🧑',img:'image/연구원_1.png'},{level:2,name:'보조연구원',emoji:'📋',img:'image/연구원_2.png'},
+    {level:3,name:'현장조사원',emoji:'🧑‍🔬',img:'image/연구원_3.png'},{level:4,name:'야생생물 전문가',emoji:'👨‍🔬',img:'image/연구원_4.png'},
+    {level:5,name:'보전생물학자',emoji:'👩‍🔬',img:'image/연구원_5.png'},{level:6,name:'수석연구원',emoji:'🏆',img:'image/연구원_6.png'}]},
+  amphibian:{id:'amphibian',name:'양서류',chapter:1,color:'#2ecc71',bg:'#0a2c18',genImg:'image/양서류_서식지.png',items:[
+    {level:1,name:'개구리 알',emoji:'🫧',img:'image/양서류_1.png'},{level:2,name:'올챙이',emoji:'🐟',img:'image/양서류_2.png'},
+    {level:3,name:'변태 개구리',emoji:'🐸',img:'image/양서류_3.png'},{level:4,name:'어린 개구리',emoji:'🐸',img:'image/양서류_4.png'},
+    {level:5,name:'번식 성체',emoji:'🐸',img:'image/양서류_5.png'},{level:6,name:'수원청개구리',emoji:'🐸',img:'image/양서류_6.png',rare:true}]},
+  fish:{id:'fish',name:'어류',chapter:2,color:'#1ee0b0',bg:'#0a2c24',genImg:'image/어류_서식지.png',items:[
+    {level:1,name:'물고기 알',emoji:'🫧',img:'image/어류_1.png'},{level:2,name:'치어',emoji:'🐟',img:'image/어류_2.png'},
+    {level:3,name:'어린 물고기',emoji:'🐟',img:'image/어류_3.png'},{level:4,name:'아성어',emoji:'🐠',img:'image/어류_4.png'},
+    {level:5,name:'번식 성어',emoji:'🐠',img:'image/어류_5.png'},{level:6,name:'흰수마자',emoji:'🐡',img:'image/어류_6.png',rare:true}]},
+  bird:{id:'bird',name:'조류',chapter:2,color:'#f09030',bg:'#301808',genImg:'image/조류_서식지.png',items:[
+    {level:1,name:'새 알',emoji:'🥚',img:'image/조류_1.png'},{level:2,name:'부화 새끼',emoji:'🐣',img:'image/조류_2.png'},
+    {level:3,name:'어린 새',emoji:'🐤',img:'image/조류_3.png'},{level:4,name:'아성조',emoji:'🐦',img:'image/조류_4.png'},
+    {level:5,name:'성조',emoji:'🦅',img:'image/조류_5.png'},{level:6,name:'황새',emoji:'🦢',img:'image/조류_6.png',rare:true}]},
   insect:{id:'insect',name:'곤충',chapter:3,color:'#e05050',bg:'#2c0808',items:[
     {level:1,name:'알',emoji:'🫧'},{level:2,name:'유충',emoji:'🐛'},
     {level:3,name:'번데기',emoji:'🫘'},{level:4,name:'우화 성충',emoji:'🦋'},
     {level:5,name:'번식 성충',emoji:'🪲'},{level:6,name:'장수하늘소',emoji:'🦌',rare:true}]},
-  turtle:{id:'turtle',name:'거북',chapter:3,color:'#1ec09a',bg:'#0a2820',items:[
-    {level:1,name:'거북 알',emoji:'🥚'},{level:2,name:'부화 새끼',emoji:'🐢'},
-    {level:3,name:'어린 거북',emoji:'🐢'},{level:4,name:'아성체',emoji:'🐢'},
-    {level:5,name:'성체 거북',emoji:'🐢'},{level:6,name:'남생이',emoji:'🐢',rare:true}]},
-  snake:{id:'snake',name:'뱀',chapter:3,color:'#a060d0',bg:'#1c0a2c',items:[
-    {level:1,name:'뱀 알',emoji:'🥚'},{level:2,name:'새끼 뱀',emoji:'🐍'},
-    {level:3,name:'어린 뱀',emoji:'🐍'},{level:4,name:'아성체 뱀',emoji:'🐍'},
-    {level:5,name:'성체 뱀',emoji:'🐍'},{level:6,name:'비바리뱀',emoji:'🐍',rare:true}]},
+  turtle:{id:'turtle',name:'거북',chapter:3,color:'#1ec09a',bg:'#0a2820',genImg:'image/거북_서식지.png',items:[
+    {level:1,name:'거북 알',emoji:'🥚',img:'image/거북_1.png'},{level:2,name:'부화 새끼',emoji:'🐢',img:'image/거북_2.png'},
+    {level:3,name:'어린 거북',emoji:'🐢',img:'image/거북_3.png'},{level:4,name:'아성체',emoji:'🐢',img:'image/거북_4.png'},
+    {level:5,name:'성체 거북',emoji:'🐢',img:'image/거북_5.png'},{level:6,name:'남생이',emoji:'🐢',img:'image/거북_6.png',rare:true}]},
+  snake:{id:'snake',name:'뱀',chapter:3,color:'#a060d0',bg:'#1c0a2c',genImg:'image/뱀_서식지.png',items:[
+    {level:1,name:'뱀 알',emoji:'🥚',img:'image/뱀_1.png'},{level:2,name:'새끼 뱀',emoji:'🐍',img:'image/뱀_2.png'},
+    {level:3,name:'어린 뱀',emoji:'🐍',img:'image/뱀_3.png'},{level:4,name:'아성체 뱀',emoji:'🐍',img:'image/뱀_4.png'},
+    {level:5,name:'성체 뱀',emoji:'🐍',img:'image/뱀_5.png'},{level:6,name:'비바리뱀',emoji:'🐍',img:'image/뱀_6.png',rare:true}]},
   mammal:{id:'mammal',name:'포유류',chapter:3,color:'#c06020',bg:'#280c04',items:[
     {level:1,name:'포유류 새끼',emoji:'🐾'},{level:2,name:'어린 개체',emoji:'🐻'},
     {level:3,name:'아성체',emoji:'🐻'},{level:4,name:'성체',emoji:'🐻'},
@@ -330,6 +454,7 @@ let G={
   energy:120,maxEnergy:120,lastEnergyTime:Date.now(),
   diamonds:5,level:1,xp:0,
   inventory:[],
+  invSlots:3,
 };
 let _uid=1;
 function mkItem(chain,level){ return {chain,level,uid:_uid++}; }
@@ -356,6 +481,7 @@ function load(){
     if(!G.lastEnergyTime) G.lastEnergyTime=Date.now();
     if(!G.questBatchCount) G.questBatchCount=0;
     if(!G.inventory) G.inventory=[];
+    if(!G.invSlots||G.invSlots<3) G.invSlots=3;
     // BUG-4: _uid 복원
     var allItems=G.board.concat(G.inventory);
     var maxUid=allItems.reduce(function(m,it){ return (it&&typeof it.uid==='number'&&it.uid>m)?it.uid:m; },0);
@@ -550,7 +676,7 @@ function renderQuests(){
     const ready=!q.done&&found>=q.count;
     html+=`<div class="qcard${q.done?' qdone':ready?' qready':''}">
       <div class="qh"><span class="qnpc">${q.npc.emoji}</span><span class="qname">${q.npc.name}</span></div>
-      <div class="qreq">${it.emoji} Lv${q.level}×${q.count}${q.done?' ✅':' ('+Math.min(found,q.count)+'/'+q.count+')'}</div>
+      <div class="qreq">${it.img?'<img src="'+it.img+'" style="width:16px;height:16px;vertical-align:middle;object-fit:contain">':it.emoji} Lv${q.level}×${q.count}${q.done?' ✅':' ('+Math.min(found,q.count)+'/'+q.count+')'}</div>
       <div class="qrew">+${q.scoreReward}점 +${q.xpReward}XP</div>
       <button class="qbtn${ready?' ready':''}" onclick="fulfillQuest(${i})" ${q.done||!ready?'disabled':''}>${q.done?'완료':'제출'}</button>
     </div>`;
@@ -699,7 +825,7 @@ function showSpeciesGenSelect(fi,ti){
   const opts=av.map(cid=>{
     const ch=CHAINS[cid];
     return `<button class="gen-select-btn" onclick="createSpeciesGen(${fi},${ti},'${cid}')">
-      <span class="ge">${ch.items[0].emoji}</span>
+      <span class="ge">${ch.items[0].img?'<img src="'+ch.items[0].img+'">':ch.items[0].emoji}</span>
       <span class="gn" style="color:${ch.color}">${ch.name} 서식지</span>
       <span class="gs">탭하면 Lv1 생산</span></button>`;
   }).join('');
@@ -715,9 +841,9 @@ function createSpeciesGen(fi,ti,chain){
 }
 function onRare(chain,level){
   const ch=CHAINS[chain],it=ch.items[level-1];
-  G.conserved.push({chain,name:it.name,emoji:it.emoji,date:new Date().toLocaleDateString('ko-KR')});
+  G.conserved.push({chain,name:it.name,emoji:it.emoji,img:it.img||null,date:new Date().toLocaleDateString('ko-KR')});
   save(); vibrate([40,20,80]); // UX-1: 희귀종 햅틱
-  showModal(`<div class="celebration"><span class="cel-emoji">${it.emoji}</span>
+  showModal(`<div class="celebration"><span class="cel-emoji">${it.img?'<img src="'+it.img+'">':it.emoji}</span>
     <h2>${it.name} 복원!</h2>
     <p style="color:#c8e6c8;margin:8px 0">${it.name}이(가) 돌아왔습니다!</p>
     <p class="cel-count">누적 복원: ${G.conserved.length}종 🌿</p>
@@ -727,31 +853,52 @@ function onRare(chain,level){
 
 // ── INVENTORY ───────────────────────────────
 var INV_MAX=10;
+const INV_UNLOCK_COST=2; // 슬롯 1칸 해금 비용 (💎)
+
 function renderInventory(){
   var slots=document.getElementById('inv-slots');
   if(!slots) return;
   slots.innerHTML='';
+  // 아이템 슬롯
   G.inventory.forEach(function(item,i){
     var cell=document.createElement('div');
     cell.className='inv-cell inv-cell-filled';
     var ch=CHAINS[item.chain];
     var it=ch&&ch.items?ch.items[item.level-1]:null;
     var lvColor=LV_COLORS[item.level-1]||'#888';
-    cell.style.cssText='background:'+(ch?ch.bg:'#1a2a1a')+';border-color:'+lvColor+';color:'+(ch?ch.color:'#aaa');
-    cell.innerHTML='<div class="inv-item-emoji">'+(it?it.emoji:'?')+'</div>'
+    cell.style.cssText='border-color:'+lvColor+';color:'+(ch?ch.color:'#aaa');
+    cell.innerHTML='<div class="inv-item-emoji">'+itmHtml(it,'')+'</div>'
       +'<div class="lv-badge" style="color:'+lvColor+';border-color:'+lvColor+'">'+item.level+'</div>';
     cell.addEventListener('click',function(){ moveInvToBoard(i); });
     slots.appendChild(cell);
   });
-  var empty=Math.max(0,INV_MAX-G.inventory.length);
-  for(var i=0;i<empty;i++){
+  // 빈 슬롯 (해금된 슬롯 중 아이템 없는 칸)
+  var emptyUnlocked=Math.max(0,G.invSlots-G.inventory.length);
+  for(var i=0;i<emptyUnlocked;i++){
     var cell=document.createElement('div');
     cell.className='inv-cell inv-cell-empty';
     slots.appendChild(cell);
   }
+  // 잠금 슬롯
+  var locked=INV_MAX-G.invSlots;
+  for(var i=0;i<locked;i++){
+    var cell=document.createElement('div');
+    cell.className='inv-cell inv-cell-locked';
+    cell.innerHTML='<span class="inv-lock-ico">🔒</span><span class="inv-lock-cost">'+INV_UNLOCK_COST+'💎</span>';
+    cell.addEventListener('click',unlockInvSlot);
+    slots.appendChild(cell);
+  }
+}
+function unlockInvSlot(){
+  if(G.invSlots>=INV_MAX){ toast('이미 보관함이 최대예요!'); return; }
+  if(G.diamonds<INV_UNLOCK_COST){ toast('💎 다이아가 부족해요! ('+INV_UNLOCK_COST+'💎 필요)'); return; }
+  G.diamonds-=INV_UNLOCK_COST;
+  G.invSlots++;
+  save(); updateDiamondUI(); renderInventory();
+  toast('보관함 슬롯 해금! ('+G.invSlots+'/'+INV_MAX+') 🎒');
 }
 function addToInventory(item){
-  if(G.inventory.length>=INV_MAX){ toast('보관함도 가득 찼어요! 아이템을 정리해주세요. 🎒'); return false; }
+  if(G.inventory.length>=G.invSlots){ toast('보관함이 가득 찼어요! 🔒 슬롯 해금이 필요해요.'); return false; }
   G.inventory.push(item);
   save(); renderInventory();
   toast('보관함에 저장됐어요 🎒 (탭해서 꺼내기)');
@@ -848,10 +995,12 @@ function showDeleteModal(idx){
   drag.fromIdx=null; drag.active=false; drag.moved=false;
   var ch=item.isSpecial?null:CHAINS[item.chain];
   var itData=item.isSpecial?SPECIALS[item.type]:(ch&&ch.items?ch.items[item.level-1]:null);
+  var itImg=itData&&itData.img?itData.img:null;
   var emoji=itData?itData.emoji:'?';
   var name=itData?itData.name:'아이템';
+  var iconHtml=itImg?'<img src="'+itImg+'" style="width:44px;height:44px;object-fit:contain">':emoji;
   showModal('<div style="text-align:center">'
-    +'<div style="font-size:44px;margin:10px 0">'+emoji+'</div>'
+    +'<div style="font-size:44px;margin:10px 0">'+iconHtml+'</div>'
     +'<h3>🌿 자연으로 방생</h3>'
     +'<p>'+name+'을(를) 보드에서 제거할까요?</p>'
     +'<p style="font-size:11px;color:var(--dim)">삭제 시 에너지 1 환급</p>'
@@ -932,7 +1081,7 @@ function renderBoard(){
         cell.classList.add('cell-filled','cell-special');
         if(item.type==='alt_habitat') cell.classList.add('cell-gen');
         cell.style.cssText='background:'+sp.bg+';border-color:'+sp.color+';color:'+sp.color;
-        cell.innerHTML='<div class="item-emoji">'+sp.emoji+'</div>'
+        cell.innerHTML='<div class="item-emoji">'+spHtml(sp,'')+'</div>'
           +'<div class="gen-lbl" style="color:'+sp.color+'">'+(item.type==='alt_habitat'?'서식지':'특수')+'</div>';
       } else {
         const ch=CHAINS[item.chain]; if(!ch){ b.appendChild(cell); return; }
@@ -941,15 +1090,15 @@ function renderBoard(){
         if(item.isGenerator){
           cell.classList.add('cell-gen');
           cell.style.cssText='background:'+ch.bg+';border-color:'+ch.color+';color:'+ch.color;
-          cell.innerHTML='<div class="item-emoji">'+(it?it.emoji:'?')+'</div>'
+          const genIcon=ch.genImg?'<img src="'+ch.genImg+'" alt="'+ch.name+'">':(it?it.emoji:'?');
+          cell.innerHTML='<div class="item-emoji">'+genIcon+'</div>'
             +'<div class="gen-lbl" style="color:'+ch.color+'">'+(ch.isBase?'생산소':'서식지')+'</div>';
         } else {
           const lvColor=LV_COLORS[item.level-1]||ch.color;
           if(it&&it.rare) cell.classList.add('cell-rare');
-          // 퀘스트 일치
           if(qSet.has(item.chain+'_'+item.level)) cell.classList.add('cell-quest-match');
           cell.style.cssText='background:'+ch.bg+';border-color:'+lvColor+';color:'+ch.color;
-          cell.innerHTML='<div class="item-emoji">'+(it?it.emoji:'?')+'</div>'
+          cell.innerHTML='<div class="item-emoji">'+itmHtml(it,'')+'</div>'
             +'<div class="lv-badge" style="color:'+lvColor+';border-color:'+lvColor+'">'+item.level+'</div>';
         }
       }
@@ -977,7 +1126,7 @@ function showDex(){
   Object.entries(gr).forEach(([cid,list])=>{
     const ch=CHAINS[cid];
     html+='<div class="dex-group"><div class="dex-group-title" style="color:'+ch.color+'">'+ch.name+' ('+list.length+')</div>';
-    list.forEach(e=>{ html+='<div class="dex-entry"><span>'+e.emoji+' '+e.name+'</span><span class="dex-date">'+e.date+'</span></div>'; });
+    list.forEach(e=>{ const icon=e.img?'<img src="'+e.img+'" style="width:18px;height:18px;vertical-align:middle;object-fit:contain">':e.emoji; html+='<div class="dex-entry"><span>'+icon+' '+e.name+'</span><span class="dex-date">'+e.date+'</span></div>'; });
     html+='</div>';
   });
   html+='</div><div class="dex-total">총 '+G.conserved.length+'종 복원 🌿</div><button class="mbtn" onclick="hideModal()">닫기</button>';
@@ -1003,6 +1152,7 @@ function init(){
   setInterval(updateEnergyUI, 1000);  // 에너지 카운트다운 매초 갱신
   setInterval(()=>{ regenEnergy(); updateEnergyUI(); }, 30000);
   initDrag();
+  preloadAllImages();
 }
 document.addEventListener('DOMContentLoaded',init);
 
