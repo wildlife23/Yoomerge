@@ -191,6 +191,16 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,18,8,0.94);color:#d0eed0;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:200;white-space:nowrap;border:1px solid var(--border);}
 #toast.show{opacity:1;}
+.rare-status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:4px 0;}
+.story-text{font-size:12px;color:#c8e6c8;line-height:1.7;margin:8px 0;text-align:left;padding:0 4px;}
+.threat-text{font-size:10px;color:#ffb060;margin:4px 0;}
+.charge-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:0px;color:rgba(255,255,255,0.85);pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.8);}
+.daily-mission-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);}
+.daily-mission-label{flex:1;font-size:12px;color:var(--text);}
+.daily-progress-bar-bg{width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.daily-progress-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
+.daily-claim-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:none;background:#4040a0;color:#fff;cursor:pointer;font-family:inherit;}
+.daily-claim-btn:disabled{background:var(--border);color:var(--dim);cursor:default;}
 </style>
 </head>
 <body>
@@ -202,7 +212,9 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
     <span id="level-text">Lv.1</span>
     <div id="xp-bar-bg"><div id="xp-bar"></div></div>
   </div>
+  <button id="daily-btn" onclick="showDailyModal()">📅</button>
   <button id="dex-btn" onclick="showDex()">📋 도감</button>
+  <button id="sound-btn" onclick="toggleMute()">🔊</button>
 </div>
 
 <!-- STATUS BAR -->
@@ -370,31 +382,31 @@ const CHAINS={
   amphibian:{id:'amphibian',name:'양서류',chapter:1,color:'#2ecc71',bg:'#0a2c18',genImg:'image/양서류_서식지.png',items:[
     {level:1,name:'개구리 알',emoji:'🫧',img:'image/양서류_1.png'},{level:2,name:'올챙이',emoji:'🐟',img:'image/양서류_2.png'},
     {level:3,name:'변태 개구리',emoji:'🐸',img:'image/양서류_3.png'},{level:4,name:'어린 개구리',emoji:'🐸',img:'image/양서류_4.png'},
-    {level:5,name:'번식 성체',emoji:'🐸',img:'image/양서류_5.png'},{level:6,name:'수원청개구리',emoji:'🐸',img:'image/양서류_6.png',rare:true}]},
+    {level:5,name:'번식 성체',emoji:'🐸',img:'image/양서류_5.png'},{level:6,name:'수원청개구리',emoji:'🐸',img:'image/양서류_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'논습지 감소·농약·외래종',story:'전 세계에서 한국에만 사는 고유종입니다. 수원에서 처음 발견되어 이름 붙여졌으며, 논 습지가 사라지면서 절멸 위기에 놓였습니다. 우리가 되살려야 할 한반도의 보물이에요.'}]},
   fish:{id:'fish',name:'어류',chapter:2,color:'#1ee0b0',bg:'#0a2c24',genImg:'image/어류_서식지.png',items:[
     {level:1,name:'물고기 알',emoji:'🫧',img:'image/어류_1.png'},{level:2,name:'치어',emoji:'🐟',img:'image/어류_2.png'},
     {level:3,name:'어린 물고기',emoji:'🐟',img:'image/어류_3.png'},{level:4,name:'아성어',emoji:'🐠',img:'image/어류_4.png'},
-    {level:5,name:'번식 성어',emoji:'🐠',img:'image/어류_5.png'},{level:6,name:'흰수마자',emoji:'🐡',img:'image/어류_6.png',rare:true}]},
+    {level:5,name:'번식 성어',emoji:'🐠',img:'image/어류_5.png'},{level:6,name:'흰수마자',emoji:'🐡',img:'image/어류_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'하천 공사·수질오염·서식지 파괴',story:'금강과 낙동강 상류 맑은 물의 굵은 모래 바닥에 살던 민물고기입니다. 하천 정비로 모래가 사라지자 개체수가 급감했습니다. 맑은 강을 되찾아야 이 물고기도 돌아옵니다.'}]},
   bird:{id:'bird',name:'조류',chapter:2,color:'#f09030',bg:'#301808',genImg:'image/조류_서식지.png',items:[
     {level:1,name:'새 알',emoji:'🥚',img:'image/조류_1.png'},{level:2,name:'부화 새끼',emoji:'🐣',img:'image/조류_2.png'},
     {level:3,name:'어린 새',emoji:'🐤',img:'image/조류_3.png'},{level:4,name:'아성조',emoji:'🐦',img:'image/조류_4.png'},
-    {level:5,name:'성조',emoji:'🦅',img:'image/조류_5.png'},{level:6,name:'황새',emoji:'🦢',img:'image/조류_6.png',rare:true}]},
+    {level:5,name:'성조',emoji:'🦅',img:'image/조류_5.png'},{level:6,name:'황새',emoji:'🦢',img:'image/조류_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'농약·밀렵·서식지 파괴',story:'1971년 한국에서 야생 황새가 완전히 사라졌습니다. 인공증식과 방사 사업으로 충남 예산에서 다시 날갯짓을 시작했어요. 행운과 복의 상징, 황새가 돌아왔습니다!'}]},
   insect:{id:'insect',name:'곤충',chapter:3,color:'#e05050',bg:'#2c0808',items:[
     {level:1,name:'알',emoji:'🫧'},{level:2,name:'유충',emoji:'🐛'},
     {level:3,name:'번데기',emoji:'🫘'},{level:4,name:'우화 성충',emoji:'🦋'},
-    {level:5,name:'번식 성충',emoji:'🪲'},{level:6,name:'장수하늘소',emoji:'🦌',rare:true}]},
+    {level:5,name:'번식 성충',emoji:'🪲'},{level:6,name:'장수하늘소',emoji:'🦌',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 훼손·불법 채집',story:'한국에서 가장 큰 딱정벌레이자 세계적 희귀종입니다. 오래된 서어나무·신갈나무 원시림이 있어야 살 수 있어요. 멋진 뿔이 장수를 상징한다 하여 장수하늘소라 불립니다.'}]},
   turtle:{id:'turtle',name:'거북',chapter:3,color:'#1ec09a',bg:'#0a2820',genImg:'image/거북_서식지.png',items:[
     {level:1,name:'거북 알',emoji:'🥚',img:'image/거북_1.png'},{level:2,name:'부화 새끼',emoji:'🐢',img:'image/거북_2.png'},
     {level:3,name:'어린 거북',emoji:'🐢',img:'image/거북_3.png'},{level:4,name:'아성체',emoji:'🐢',img:'image/거북_4.png'},
-    {level:5,name:'성체 거북',emoji:'🐢',img:'image/거북_5.png'},{level:6,name:'남생이',emoji:'🐢',img:'image/거북_6.png',rare:true}]},
+    {level:5,name:'성체 거북',emoji:'🐢',img:'image/거북_5.png'},{level:6,name:'남생이',emoji:'🐢',img:'image/거북_6.png',rare:true,status:'멸종위기 야생생물 II급',threat:'서식지 파괴·외래종 경쟁·식용 포획',story:'우리 고전에 자주 등장하는 토종 거북입니다. 외래종 붉은귀거북에 밀려 설 땅을 잃었어요. 연못과 하천을 느릿느릿 누비던 남생이를 반드시 되찾아야 합니다.'}]},
   snake:{id:'snake',name:'뱀',chapter:3,color:'#a060d0',bg:'#1c0a2c',genImg:'image/뱀_서식지.png',items:[
     {level:1,name:'뱀 알',emoji:'🥚',img:'image/뱀_1.png'},{level:2,name:'새끼 뱀',emoji:'🐍',img:'image/뱀_2.png'},
     {level:3,name:'어린 뱀',emoji:'🐍',img:'image/뱀_3.png'},{level:4,name:'아성체 뱀',emoji:'🐍',img:'image/뱀_4.png'},
-    {level:5,name:'성체 뱀',emoji:'🐍',img:'image/뱀_5.png'},{level:6,name:'비바리뱀',emoji:'🐍',img:'image/뱀_6.png',rare:true}]},
+    {level:5,name:'성체 뱀',emoji:'🐍',img:'image/뱀_5.png'},{level:6,name:'비바리뱀',emoji:'🐍',img:'image/뱀_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 파괴·불법 포획',story:'제주도에만 사는 한국 고유종 뱀입니다. 한라산 중산간 초원과 계곡을 삶의 터로 삼아요. 개발로 서식지가 줄어 이제는 만나기조차 어렵습니다.'}]},
   mammal:{id:'mammal',name:'포유류',chapter:3,color:'#c06020',bg:'#280c04',items:[
     {level:1,name:'포유류 새끼',emoji:'🐾'},{level:2,name:'어린 개체',emoji:'🐻'},
     {level:3,name:'아성체',emoji:'🐻'},{level:4,name:'성체',emoji:'🐻'},
-    {level:5,name:'번식 성체',emoji:'🐻'},{level:6,name:'반달가슴곰',emoji:'🐼',rare:true}]},
+    {level:5,name:'번식 성체',emoji:'🐻'},{level:6,name:'반달가슴곰',emoji:'🐼',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 단절·밀렵·도로',story:'지리산의 상징이자 한국 대형 포유류 복원의 희망입니다. 복원 사업으로 60마리 이상이 지리산을 누비고 있어요. 앞가슴의 반달 무늬가 인상적인 우리 산의 주인입니다.'}]},
 };
 
 const NPCS=[
@@ -447,6 +459,7 @@ function getRegenMs(){
 // ── STATE ───────────────────────────────────
 const COLS=6,ROWS=8,CELLS=COLS*ROWS;
 let G={
+  version:4,
   board:Array(CELLS).fill(null),
   chapter:1,score:0,conserved:[],
   unlocked:['equipment','researcher','amphibian'],
@@ -455,37 +468,55 @@ let G={
   diamonds:5,level:1,xp:0,
   inventory:[],
   invSlots:3,
+  muted:false,
+  daily:{date:'',missions:[],streak:0,claimedToday:false,mergeCount:0,questCount:0,restoreCount:0},
 };
 let _uid=1;
 function mkItem(chain,level){ return {chain,level,uid:_uid++}; }
-function mkGen(chain){ return {chain,isGenerator:true,uid:'gen_'+chain}; }
+function mkGen(chain){ return {chain,isGenerator:true,uid:'gen_'+chain,charges:3,maxCharges:3,lastRechargeTime:Date.now()}; }
 function mkSpecial(type){ return {isSpecial:true,type,uid:_uid++}; }
 
+// ── BOARD RENDER CACHE ──────────────────────
+const _cells=Array(CELLS);
+let _qSet=new Set();
+
 // ── STORAGE ─────────────────────────────────
-function save(){ try{ localStorage.setItem('eco_v2',JSON.stringify(G)); }catch(e){} }
+let _saveTimer=null;
+function saveNow(){ try{ localStorage.setItem('eco_v2',JSON.stringify(G)); }catch(e){} }
+function save(){ clearTimeout(_saveTimer); _saveTimer=setTimeout(saveNow,800); }
+
+function migrate(p){
+  if(p.quest!==undefined){ delete p.quest; p.quests=[]; }
+  if(!Array.isArray(p.quests)||p.quests.length<3||(p.quests[0]&&p.quests[0].xpReward===undefined)){
+    p.quests=[];
+  }
+  G=Object.assign(G,p);
+  if(G.energy===undefined) G.energy=G.maxEnergy||120;
+  if(!G.maxEnergy) G.maxEnergy=120;
+  if(G.diamonds===undefined) G.diamonds=0;
+  if(!G.level) G.level=1;
+  if(!G.xp) G.xp=0;
+  if(!G.lastEnergyTime) G.lastEnergyTime=Date.now();
+  if(!G.questBatchCount) G.questBatchCount=0;
+  if(!G.inventory) G.inventory=[];
+  if(!G.invSlots||G.invSlots<3) G.invSlots=3;
+  if(G.muted===undefined) G.muted=false;
+  if(!G.daily||typeof G.daily!=='object') G.daily={date:'',missions:[],streak:0,claimedToday:false,mergeCount:0,questCount:0,restoreCount:0};
+  if(G.daily.mergeCount===undefined) G.daily.mergeCount=0;
+  if(G.daily.questCount===undefined) G.daily.questCount=0;
+  if(G.daily.restoreCount===undefined) G.daily.restoreCount=0;
+  // BUG-4: _uid 복원
+  var allItems=G.board.concat(G.inventory);
+  var maxUid=allItems.reduce(function(m,it){ return (it&&typeof it.uid==='number'&&it.uid>m)?it.uid:m; },0);
+  _uid=maxUid+1;
+}
+
 function load(){
   try{
     const d=localStorage.getItem('eco_v2');
     if(!d) return false;
     const p=JSON.parse(d);
-    if(p.quest!==undefined){ delete p.quest; p.quests=[]; }
-    if(!Array.isArray(p.quests)||p.quests.length<3||(p.quests[0]&&p.quests[0].xpReward===undefined)){
-      p.quests=[];
-    }
-    G=Object.assign(G,p);
-    if(G.energy===undefined) G.energy=G.maxEnergy||120;
-    if(!G.maxEnergy) G.maxEnergy=120;
-    if(G.diamonds===undefined) G.diamonds=0;
-    if(!G.level) G.level=1;
-    if(!G.xp) G.xp=0;
-    if(!G.lastEnergyTime) G.lastEnergyTime=Date.now();
-    if(!G.questBatchCount) G.questBatchCount=0;
-    if(!G.inventory) G.inventory=[];
-    if(!G.invSlots||G.invSlots<3) G.invSlots=3;
-    // BUG-4: _uid 복원
-    var allItems=G.board.concat(G.inventory);
-    var maxUid=allItems.reduce(function(m,it){ return (it&&typeof it.uid==='number'&&it.uid>m)?it.uid:m; },0);
-    _uid=maxUid+1;
+    migrate(p);
     return true;
   }catch(e){ return false; }
 }
@@ -509,7 +540,7 @@ function updateEnergyUI(){
 }
 function addEnergy(n){ G.energy=Math.min(G.maxEnergy,G.energy+n); save(); updateEnergyUI(); }
 function spendEnergy(n){
-  if(G.energy<n){ toast('에너지가 부족해요! ⚡'); return false; }
+  if(G.energy<n){ toast('에너지가 부족해요! ⚡'); playSfx('error'); return false; }
   G.energy-=n; save(); updateEnergyUI(); return true;
 }
 function showEnergyModal(){
@@ -534,7 +565,7 @@ function buyEnergy(cost,amt){
 
 // ── DIAMONDS ────────────────────────────────
 function updateDiamondUI(){ document.getElementById('diamond-text').textContent=G.diamonds; }
-function addDiamonds(n){ G.diamonds+=n; save(); updateDiamondUI(); }
+function addDiamonds(n){ G.diamonds+=n; save(); updateDiamondUI(); if(n>=5) toast('💎 +'+n+' 다이아몬드 획득!'); }
 
 // ── SHOP ────────────────────────────────────
 function showShop(){
@@ -629,7 +660,9 @@ function applyLevelBonus(lv){
   if(b.maxEnergy){ G.maxEnergy+=b.maxEnergy; addEnergy(b.maxEnergy); }
   if(b.diamonds) addDiamonds(b.diamonds);
   if(b.specialItem) spawnSpecialItem(b.specialItem);
-  vibrate([30,15,30]); // UX-1: 레벨업 햅틱
+  vibrate([30,15,30]);
+  playSfx('levelup');
+  saveNow();
   showModal(`<div class="celebration">
     <span class="cel-emoji">⬆️</span>
     <h2>레벨 업! Lv.${lv}</h2>
@@ -695,11 +728,12 @@ function fulfillQuest(idx){
   }
   q.done=true;
   addScore(q.scoreReward); addXP(q.xpReward);
+  updateDailyProgress('quest',++G.daily.questCount);
   toast('퀘스트 완료! +'+q.scoreReward+'점 🌿');
   if(G.quests.every(q=>q.done)){
     G.questBatchCount=(G.questBatchCount||0)+1;
     if(G.questBatchCount%3===0) spawnSpecialItem();
-    if(G.questBatchCount%5===0){ addDiamonds(1); toast('💎 +1 배치 보너스!'); }
+    if(G.questBatchCount%3===0){ addDiamonds(1); toast('💎 +1 배치 보너스!'); }
     setTimeout(generateQuestBatch,1000);
   }
   save(); renderBoard(); renderQuests();
@@ -727,14 +761,16 @@ function checkChapterAdvance(){
     const nc=getCD(G.chapter);
     if(nc&&nc.unlocks) nc.unlocks.forEach(c=>{ if(!G.unlocked.includes(c)) G.unlocked.push(c); });
     document.getElementById('chapter-label').textContent='챕터 '+G.chapter;
+    G.diamonds+=3; updateDiamondUI();
+    playSfx('levelup');
     if(nc&&nc.unlocks&&nc.unlocks.length){
-      toast('📖 챕터 '+G.chapter+'! 🔓 '+nc.unlocks.map(c=>CHAINS[c].name).join(', ')+' 해금!');
+      toast('📖 챕터 '+G.chapter+'! 🔓 '+nc.unlocks.map(c=>CHAINS[c].name).join(', ')+' 해금! 💎+3');
       setTimeout(generateQuestBatch,600);
     } else {
-      toast('📖 챕터 '+G.chapter+' — '+nc.title+'!');
+      toast('📖 챕터 '+G.chapter+' — '+nc.title+'! 💎+3');
     }
   }
-  save(); updateScoreUI();
+  saveNow(); updateScoreUI();
 }
 
 // ── BOARD LOGIC ─────────────────────────────
@@ -751,32 +787,52 @@ function nearestEmpty(fromIdx){
 }
 function tapGenerator(idx){
   var gen=G.board[idx]; if(!gen||!gen.isGenerator) return;
+  if(gen.charges===undefined) gen.charges=3;
+  if(gen.charges<=0){ toast('충전 중이에요! ⏳ 잠시 후 다시 시도해주세요.'); playSfx('error'); return; }
   if(!spendEnergy(1)) return;
+  gen.charges--;
+  playSfx('tap');
   var e=nearestEmpty(idx);
   if(e===-1){
     // 보드 가득 → 인벤토리로
-    if(!addToInventory(mkItem(gen.chain,1))){ addEnergy(1); return; }
-    addScore(1); return;
+    if(!addToInventory(mkItem(gen.chain,1))){ addEnergy(1); gen.charges++; return; }
+    addScore(1); updateCell(idx); save(); return;
   }
   G.board[e]=mkItem(gen.chain,1);
-  save(); renderBoard(); addScore(1); renderQuests();
+  save(); updateCell(idx); updateCell(e); addScore(1); renderQuests();
+}
+function rechargeGenerators(){
+  let changed=false;
+  G.board.forEach(item=>{
+    if(!item||!item.isGenerator) return;
+    if(item.charges===undefined){ item.charges=3; item.maxCharges=3; item.lastRechargeTime=Date.now(); changed=true; return; }
+    if(item.charges>=(item.maxCharges||3)){ item.lastRechargeTime=Date.now(); return; }
+    const ms=300000;
+    const elapsed=Date.now()-(item.lastRechargeTime||Date.now());
+    const gained=Math.floor(elapsed/ms);
+    if(gained>0){
+      item.charges=Math.min(item.maxCharges||3,item.charges+gained);
+      item.lastRechargeTime=(item.lastRechargeTime||Date.now())+gained*ms;
+      changed=true;
+    }
+  });
+  if(changed){ saveNow(); renderBoard(); }
 }
 function tapSpecial(idx){
   const item=G.board[idx]; if(!item||!item.isSpecial) return;
   if(item.type==='energy_pack'){
-    G.board[idx]=null; addEnergy(30); save(); renderBoard(); toast('⚡ +30 에너지!');
+    G.board[idx]=null; addEnergy(30); save(); updateCell(idx); toast('⚡ +30 에너지!'); playSfx('tap');
   } else if(item.type==='diamond_shard'){
-    G.board[idx]=null; addDiamonds(1); save(); renderBoard(); toast('💎 +1 다이아!');
+    G.board[idx]=null; G.diamonds+=1; save(); updateCell(idx); updateDiamondUI(); toast('💎 +1 다이아!'); playSfx('tap');
   } else if(item.type==='alt_habitat'){
     if(!spendEnergy(1)) return;
     const e=nearestEmpty(idx);
     if(e===-1){ addEnergy(1); toast('보드가 가득 찼어요!'); return; }
-    // DESIGN-5: 해금된 종 중 랜덤
     const sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
     const chain=sp.length?sp[Math.floor(Math.random()*sp.length)]:'amphibian';
     const lv=Math.ceil(Math.random()*3);
     G.board[e]=mkItem(chain,lv);
-    save(); renderBoard(); addScore(1); renderQuests();
+    save(); updateCell(idx); updateCell(e); addScore(1); renderQuests(); playSfx('tap');
     toast('🌊 '+CHAINS[chain].name+' Lv'+lv+' 생산!');
   }
 }
@@ -785,7 +841,7 @@ function spawnSpecialItem(type){
   const t=type||types[Math.floor(Math.random()*types.length)];
   const e=nearestEmpty(0);
   if(e===-1){ toast('보드가 가득 차 보너스 아이템을 못 받았어요!'); return; }
-  G.board[e]=mkSpecial(t); save(); renderBoard();
+  G.board[e]=mkSpecial(t); save(); updateCell(e);
   toast('🎁 '+SPECIALS[t].name+' 획득!');
 }
 function handleDrop(fromIdx,toIdx){
@@ -795,29 +851,32 @@ function handleDrop(fromIdx,toIdx){
   if(from.isGenerator||from.isSpecial){
     if(!to){ G.board[toIdx]=from; G.board[fromIdx]=null; }
     else{ G.board[toIdx]=from; G.board[fromIdx]=to; }
-    save(); renderBoard(); return;
+    save(); updateCell(fromIdx); updateCell(toIdx); return;
   }
-  if(!to){ G.board[toIdx]=from; G.board[fromIdx]=null; save(); renderBoard(); return; }
-  if(to.isGenerator||to.isSpecial){ G.board[toIdx]=from; G.board[fromIdx]=to; save(); renderBoard(); return; }
+  if(!to){ G.board[toIdx]=from; G.board[fromIdx]=null; save(); updateCell(fromIdx); updateCell(toIdx); return; }
+  if(to.isGenerator||to.isSpecial){ G.board[toIdx]=from; G.board[fromIdx]=to; save(); updateCell(fromIdx); updateCell(toIdx); return; }
   if(from.chain===to.chain&&from.level===to.level){
     const next=from.level+1,ch=CHAINS[from.chain];
     if(ch&&next<=ch.items.length){
       G.board[toIdx]=mkItem(from.chain,next); G.board[fromIdx]=null;
-      save(); renderBoard();
+      save(); updateCell(fromIdx); updateCell(toIdx);
       // UX-3: 합성 애니메이션
-      const mc=document.querySelector('.cell[data-idx="'+toIdx+'"]');
+      const mc=_cells[toIdx];
       if(mc){ mc.classList.add('cell-pop'); setTimeout(()=>mc.classList.remove('cell-pop'),300); }
       // UX-1: 햅틱
       vibrate([20]);
+      playSfx('merge');
+      // 일일 미션 합성 카운트
+      if(G.daily.missions&&G.daily.missions.length){ G.daily.mergeCount++; updateDailyProgress('merge',G.daily.mergeCount); }
       if(ch.items[next-1].rare) onRare(from.chain,next);
       addScore(5*next); renderQuests();
-    } else { toast('이미 최고 등급이에요!'); save(); renderBoard(); }
+    } else { toast('이미 최고 등급이에요!'); save(); }
     return;
   }
   const isEq=c=>c.chain==='equipment'&&c.level===6;
   const isRe=c=>c.chain==='researcher'&&c.level===6;
   if((isEq(from)&&isRe(to))||(isRe(from)&&isEq(to))){ showSpeciesGenSelect(fromIdx,toIdx); return; }
-  G.board[toIdx]=from; G.board[fromIdx]=to; save(); renderBoard();
+  G.board[toIdx]=from; G.board[fromIdx]=to; save(); updateCell(fromIdx); updateCell(toIdx);
 }
 function showSpeciesGenSelect(fi,ti){
   const av=G.unlocked.filter(c=>!['equipment','researcher'].includes(c)&&!G.board.some(b=>b&&b.isGenerator&&b.chain===c));
@@ -835,19 +894,48 @@ function showSpeciesGenSelect(fi,ti){
 }
 function createSpeciesGen(fi,ti,chain){
   G.board[fi]=null; G.board[ti]=mkGen(chain);
-  hideModal(); save(); renderBoard();
+  hideModal(); saveNow(); updateCell(fi); updateCell(ti);
   toast(CHAINS[chain].name+' 서식지 생성! 🌿');
   if(!G.quests||G.quests.length===0) setTimeout(generateQuestBatch,500);
 }
+function showRareCard(chain){
+  const ch=CHAINS[chain];
+  const it=ch.items[ch.items.length-1];
+  const statusColor=it.status&&it.status.includes('I급')?'#e05050':'#e09030';
+  const iconHtml=it.img?'<img src="'+((_imgCache[it.img]&&_imgCache[it.img]!=='loading')?_imgCache[it.img]:it.img)+'" style="width:72px;height:72px;object-fit:contain">':it.emoji;
+  const count=G.conserved.filter(e=>e.chain===chain).length;
+  showModal(`<div class="celebration">
+    <div class="cel-emoji">${iconHtml}</div>
+    <h2>${it.name} 복원!</h2>
+    ${it.status?'<div><span class="rare-status" style="background:'+statusColor+'20;color:'+statusColor+';border:1px solid '+statusColor+'">'+it.status+'</span></div>':''}
+    ${it.threat?'<div class="threat-text">⚠️ '+it.threat+'</div>':''}
+    ${it.story?'<p class="story-text">'+it.story+'</p>':''}
+    <p class="cel-count">누적 복원: ${count}종 🌿</p>
+    <button class="mbtn" onclick="hideModal()">계속하기</button>
+  </div>`);
+}
 function onRare(chain,level){
   const ch=CHAINS[chain],it=ch.items[level-1];
+  const isFirst=G.conserved.filter(e=>e.chain===chain).length===0;
   G.conserved.push({chain,name:it.name,emoji:it.emoji,img:it.img||null,date:new Date().toLocaleDateString('ko-KR')});
-  save(); vibrate([40,20,80]); // UX-1: 희귀종 햅틱
-  showModal(`<div class="celebration"><span class="cel-emoji">${it.img?'<img src="'+it.img+'">':it.emoji}</span>
+  updateDailyProgress('restore',++G.daily.restoreCount);
+  save(); vibrate([40,20,80]);
+  playSfx('rare');
+  const statusColor=it.status&&it.status.includes('I급')?'#e05050':'#e09030';
+  const iconHtml=it.img?'<img src="'+((_imgCache[it.img]&&_imgCache[it.img]!=='loading')?_imgCache[it.img]:it.img)+'" style="width:72px;height:72px;object-fit:contain">':it.emoji;
+  const count=G.conserved.filter(e=>e.chain===chain).length;
+  const firstBonus=isFirst?'<p style="color:#f0c040;font-weight:700;margin:4px 0">💎+3 첫 복원 보너스!</p>':'';
+  showModal(`<div class="celebration">
+    <div class="cel-emoji">${iconHtml}</div>
     <h2>${it.name} 복원!</h2>
-    <p style="color:#c8e6c8;margin:8px 0">${it.name}이(가) 돌아왔습니다!</p>
-    <p class="cel-count">누적 복원: ${G.conserved.length}종 🌿</p>
-    <button class="mbtn" onclick="hideModal()">계속하기</button></div>`);
+    ${it.status?'<div><span class="rare-status" style="background:'+statusColor+'20;color:'+statusColor+';border:1px solid '+statusColor+'">'+it.status+'</span></div>':''}
+    ${it.threat?'<div class="threat-text">⚠️ '+it.threat+'</div>':''}
+    ${it.story?'<p class="story-text">'+it.story+'</p>':''}
+    <p class="cel-count">누적 복원: ${count}종 🌿</p>
+    ${firstBonus}
+    <button class="mbtn" onclick="hideModal()">계속하기</button>
+  </div>`);
+  if(isFirst){ G.diamonds+=3; updateDiamondUI(); toast('💎 +3 첫 복원 보너스!'); }
   addScore(150);
 }
 
@@ -910,7 +998,7 @@ function moveInvToBoard(invIdx){
   if(e===-1){ toast('보드에 빈 칸이 없어요!'); return; }
   G.board[e]=item;
   G.inventory.splice(invIdx,1);
-  save(); renderBoard(); renderInventory(); renderQuests();
+  save(); updateCell(e); renderInventory(); renderQuests();
   toast('보드로 꺼냈어요!');
 }
 
@@ -1011,7 +1099,7 @@ function showDeleteModal(idx){
 function deleteItem(idx){
   const item=G.board[idx]; if(!item||item.isGenerator) return;
   G.board[idx]=null; addEnergy(1);
-  hideModal(); save(); renderBoard(); renderQuests();
+  hideModal(); save(); updateCell(idx); renderQuests();
   vibrate([15]); toast('🌿 방생했습니다 (+1⚡)');
 }
 function onMS(e){
@@ -1066,45 +1154,62 @@ function endDrag(cx,cy){
 }
 
 // ── RENDER ──────────────────────────────────
-function renderBoard(){
-  const b=document.getElementById('board'); b.innerHTML='';
-  // 퀘스트 매칭 셋
-  const qSet=new Set();
-  if(G.quests) G.quests.forEach(q=>{ if(!q.done) qSet.add(q.chain+'_'+q.level); });
-
-  G.board.forEach((item,idx)=>{
+function initBoard(){
+  const b=document.getElementById('board');
+  b.innerHTML='';
+  for(let i=0;i<CELLS;i++){
     const cell=document.createElement('div');
-    cell.className='cell'; cell.dataset.idx=idx;
-    if(item){
-      if(item.isSpecial){
-        const sp=SPECIALS[item.type];
-        cell.classList.add('cell-filled','cell-special');
-        if(item.type==='alt_habitat') cell.classList.add('cell-gen');
-        cell.style.cssText='background:'+sp.bg+';border-color:'+sp.color+';color:'+sp.color;
-        cell.innerHTML='<div class="item-emoji">'+spHtml(sp,'')+'</div>'
-          +'<div class="gen-lbl" style="color:'+sp.color+'">'+(item.type==='alt_habitat'?'서식지':'특수')+'</div>';
-      } else {
-        const ch=CHAINS[item.chain]; if(!ch){ b.appendChild(cell); return; }
-        const it=item.isGenerator?ch.items[0]:ch.items[item.level-1];
-        cell.classList.add('cell-filled');
-        if(item.isGenerator){
-          cell.classList.add('cell-gen');
-          cell.style.cssText='background:'+ch.bg+';border-color:'+ch.color+';color:'+ch.color;
-          const genIcon=ch.genImg?'<img src="'+ch.genImg+'" alt="'+ch.name+'">':(it?it.emoji:'?');
-          cell.innerHTML='<div class="item-emoji">'+genIcon+'</div>'
-            +'<div class="gen-lbl" style="color:'+ch.color+'">'+(ch.isBase?'생산소':'서식지')+'</div>';
-        } else {
-          const lvColor=LV_COLORS[item.level-1]||ch.color;
-          if(it&&it.rare) cell.classList.add('cell-rare');
-          if(qSet.has(item.chain+'_'+item.level)) cell.classList.add('cell-quest-match');
-          cell.style.cssText='background:'+ch.bg+';border-color:'+lvColor+';color:'+ch.color;
-          cell.innerHTML='<div class="item-emoji">'+itmHtml(it,'')+'</div>'
-            +'<div class="lv-badge" style="color:'+lvColor+';border-color:'+lvColor+'">'+item.level+'</div>';
-        }
-      }
-    } else { cell.classList.add('cell-empty'); }
+    cell.className='cell';
+    cell.dataset.idx=i;
     b.appendChild(cell);
-  });
+    _cells[i]=cell;
+  }
+}
+
+function updateCell(idx){
+  const cell=_cells[idx];
+  if(!cell) return;
+  const item=G.board[idx];
+  cell.className='cell';
+  cell.style.cssText='';
+  cell.innerHTML='';
+  if(!item){ cell.classList.add('cell-empty'); return; }
+
+  if(item.isSpecial){
+    const sp=SPECIALS[item.type];
+    cell.classList.add('cell-filled','cell-special');
+    if(item.type==='alt_habitat') cell.classList.add('cell-gen');
+    cell.style.cssText='background:'+sp.bg+';border-color:'+sp.color+';color:'+sp.color;
+    cell.innerHTML='<div class="item-emoji">'+spHtml(sp,'')+'</div>'
+      +'<div class="gen-lbl" style="color:'+sp.color+'">'+(item.type==='alt_habitat'?'서식지':'특수')+'</div>';
+  } else {
+    const ch=CHAINS[item.chain]; if(!ch) return;
+    const it=item.isGenerator?ch.items[0]:ch.items[item.level-1];
+    cell.classList.add('cell-filled');
+    if(item.isGenerator){
+      cell.classList.add('cell-gen');
+      cell.style.cssText='background:'+ch.bg+';border-color:'+ch.color+';color:'+ch.color;
+      if(item.charges===undefined) item.charges=item.maxCharges||3;
+      const dots='•'.repeat(item.charges)+'◦'.repeat((item.maxCharges||3)-item.charges);
+      const genIcon=ch.genImg?'<img src="'+((_imgCache[ch.genImg]&&_imgCache[ch.genImg]!=='loading')?_imgCache[ch.genImg]:ch.genImg)+'" alt="'+ch.name+'">':(it?it.emoji:'?');
+      cell.innerHTML='<div class="item-emoji">'+genIcon+'</div>'
+        +'<div class="charge-dots">'+dots+'</div>'
+        +'<div class="gen-lbl" style="color:'+ch.color+'">'+(ch.isBase?'생산소':'서식지')+'</div>';
+    } else {
+      const lvColor=LV_COLORS[item.level-1]||ch.color;
+      if(it&&it.rare) cell.classList.add('cell-rare');
+      if(_qSet.has(item.chain+'_'+item.level)) cell.classList.add('cell-quest-match');
+      cell.style.cssText='background:'+ch.bg+';border-color:'+lvColor+';color:'+ch.color;
+      cell.innerHTML='<div class="item-emoji">'+itmHtml(it,'')+'</div>'
+        +'<div class="lv-badge" style="color:'+lvColor+';border-color:'+lvColor+'">'+item.level+'</div>';
+    }
+  }
+}
+
+function renderBoard(){
+  _qSet=new Set();
+  if(G.quests) G.quests.forEach(q=>{ if(!q.done) _qSet.add(q.chain+'_'+q.level); });
+  for(let i=0;i<CELLS;i++) updateCell(i);
 }
 
 // ── MODAL & TOAST ────────────────────────────
@@ -1126,11 +1231,119 @@ function showDex(){
   Object.entries(gr).forEach(([cid,list])=>{
     const ch=CHAINS[cid];
     html+='<div class="dex-group"><div class="dex-group-title" style="color:'+ch.color+'">'+ch.name+' ('+list.length+')</div>';
-    list.forEach(e=>{ const icon=e.img?'<img src="'+e.img+'" style="width:18px;height:18px;vertical-align:middle;object-fit:contain">':e.emoji; html+='<div class="dex-entry"><span>'+icon+' '+e.name+'</span><span class="dex-date">'+e.date+'</span></div>'; });
+    list.forEach(e=>{
+      const icon=e.img?'<img src="'+e.img+'" style="width:18px;height:18px;vertical-align:middle;object-fit:contain">':e.emoji;
+      html+='<div class="dex-entry" style="cursor:pointer" onclick="showRareCard(\''+e.chain+'\')"><span>'+icon+' '+e.name+'</span><span class="dex-date">'+e.date+' ›</span></div>';
+    });
     html+='</div>';
   });
   html+='</div><div class="dex-total">총 '+G.conserved.length+'종 복원 🌿</div><button class="mbtn" onclick="hideModal()">닫기</button>';
   showModal(html);
+}
+
+// ── SOUND ────────────────────────────────────
+let _audioCtx=null;
+function resumeAudio(){ if(_audioCtx&&_audioCtx.state==='suspended') _audioCtx.resume(); }
+function playSfx(type){
+  if(G.muted) return;
+  try{
+    if(!_audioCtx) _audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const ctx=_audioCtx;
+    const freqs={merge:[440,880],tap:[523],rare:[523,659,784],levelup:[261,392,523],error:[150]};
+    const notes=freqs[type]||[440];
+    notes.forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=f;
+      o.type=type==='error'?'sawtooth':'sine';
+      const t=ctx.currentTime+i*0.12;
+      g.gain.setValueAtTime(0.18,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      o.start(t); o.stop(t+0.15);
+    });
+  }catch(e){}
+}
+function toggleMute(){
+  G.muted=!G.muted;
+  document.getElementById('sound-btn').textContent=G.muted?'🔇':'🔊';
+  save();
+}
+
+// ── DAILY MISSIONS ────────────────────────────
+function generateDailyMissions(){
+  return [
+    {type:'merge',label:'합성하기',target:15,current:0,reward:{diamonds:1},done:false,claimed:false},
+    {type:'quest',label:'퀘스트 완료',target:2,current:0,reward:{energy:30},done:false,claimed:false},
+    {type:'restore',label:'종 복원',target:1,current:0,reward:{diamonds:3},done:false,claimed:false},
+  ];
+}
+function checkDailyReset(){
+  const today=new Date().toISOString().slice(0,10);
+  if(G.daily.date===today) return;
+  // 연속 출석 계산
+  const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(G.daily.date===yesterday) G.daily.streak=(G.daily.streak||0)+1;
+  else G.daily.streak=1;
+  G.daily.date=today;
+  G.daily.missions=generateDailyMissions();
+  G.daily.claimedToday=false;
+  G.daily.mergeCount=0;
+  G.daily.questCount=0;
+  G.daily.restoreCount=0;
+  save();
+}
+function updateDailyProgress(type,count){
+  if(!G.daily.missions||!G.daily.missions.length) return;
+  const m=G.daily.missions.find(m=>m.type===type);
+  if(!m||m.done) return;
+  m.current=count;
+  if(m.current>=m.target) m.done=true;
+  save();
+}
+function claimAttendance(){
+  if(G.daily.claimedToday){ toast('오늘 출석은 이미 했어요'); return; }
+  const s=G.daily.streak||1;
+  if(s%30===0){ addDiamonds(20); addEnergy(100); toast('🎉 30일 연속! 💎+20 ⚡+100'); }
+  else if(s%7===0){ addDiamonds(5); addEnergy(50); toast('🎉 7일 연속! 💎+5 ⚡+50'); }
+  else{ addEnergy(30); toast('✅ 출석 완료! ⚡+30'); }
+  G.daily.claimedToday=true;
+  save();
+  showDailyModal();
+}
+function claimMission(idx){
+  const m=G.daily.missions[idx];
+  if(!m||!m.done||m.claimed) return;
+  if(m.reward.diamonds){ G.diamonds+=m.reward.diamonds; updateDiamondUI(); toast('💎 +'+m.reward.diamonds+' 미션 보상!'); }
+  if(m.reward.energy){ addEnergy(m.reward.energy); toast('⚡ +'+m.reward.energy+' 미션 보상!'); }
+  m.claimed=true;
+  save();
+  showDailyModal();
+}
+function showDailyModal(){
+  checkDailyReset();
+  const s=G.daily.streak||0;
+  const attended=G.daily.claimedToday;
+  let missionsHtml='';
+  (G.daily.missions||[]).forEach((m,i)=>{
+    const pct=Math.min(100,Math.round((m.current/m.target)*100));
+    const rewLabel=m.reward.diamonds?'💎'+m.reward.diamonds:m.reward.energy?'⚡'+m.reward.energy:'';
+    let btnHtml='';
+    if(m.claimed) btnHtml='<button class="daily-claim-btn" disabled>완료✅</button>';
+    else if(m.done) btnHtml='<button class="daily-claim-btn" onclick="claimMission('+i+')">수령</button>';
+    else btnHtml='<button class="daily-claim-btn" disabled>'+m.current+'/'+m.target+'</button>';
+    missionsHtml+=`<div class="daily-mission-row">
+      <div class="daily-mission-label">${m.label} <span style="font-size:10px;color:var(--dim)">(${rewLabel})</span></div>
+      <div class="daily-progress-bar-bg"><div class="daily-progress-bar" style="width:${pct}%"></div></div>
+      ${btnHtml}
+    </div>`;
+  });
+  showModal(`<h3>🗓️ 일일 미션</h3>
+    <p style="color:#f0c040;font-size:13px;margin:4px 0">${s}일 연속 접속 🔥</p>
+    <button class="mbtn${attended?' cancel':''}" onclick="${attended?'':'claimAttendance()'}" ${attended?'disabled':''}>
+      ${attended?'출석 완료 ✅':'출석 보상 받기'}
+    </button>
+    <div style="margin-top:10px">${missionsHtml}</div>
+    <button class="mbtn cancel" style="margin-top:12px" onclick="hideModal()">닫기</button>`);
 }
 
 // ── INIT ────────────────────────────────────
@@ -1141,18 +1354,25 @@ function init(){
     G.board[6]=mkGen('researcher');
     G.board[1]=mkItem('equipment',1);
     G.board[7]=mkItem('researcher',1);
-    save();
+    saveNow();
   }
+  checkDailyReset();
+  initBoard();
   renderBoard(); renderInventory(); updateScoreUI(); updateEnergyUI(); updateDiamondUI(); updateLevelUI();
   document.getElementById('chapter-label').textContent='챕터 '+G.chapter;
+  document.getElementById('sound-btn').textContent=G.muted?'🔇':'🔊';
   const sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
   if(sp.length&&(G.quests.length===0||G.quests.every(q=>q.done))){
     setTimeout(generateQuestBatch,500);
   } else { renderQuests(); }
-  setInterval(updateEnergyUI, 1000);  // 에너지 카운트다운 매초 갱신
+  setInterval(updateEnergyUI, 1000);
   setInterval(()=>{ regenEnergy(); updateEnergyUI(); }, 30000);
+  setInterval(rechargeGenerators, 60000);
   initDrag();
   preloadAllImages();
+  document.addEventListener('touchstart', resumeAudio, {once:true});
+  document.addEventListener('click', resumeAudio, {once:true});
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveNow(); });
 }
 document.addEventListener('DOMContentLoaded',init);
 
