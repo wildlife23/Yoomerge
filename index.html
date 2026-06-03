@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#182e18">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <title>생태계 수호자</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+:root{--bg:#0e1c0e;--panel:#182e18;--border:#2e4a2e;--text:#d0eed0;--dim:#80b880;--accent:#50c850;}
+html{height:100%;height:-webkit-fill-available;}
+body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;display:flex;flex-direction:column;}
+
+
+/* ── TOP BAR ────────────────────────────── */
+#top-bar{display:flex;align-items:center;padding:0 8px;background:var(--panel);border-bottom:1px solid var(--border);height:40px;flex-shrink:0;gap:8px;}
+#chapter-label{font-weight:700;color:var(--accent);font-size:12px;white-space:nowrap;}
+#level-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+#level-text{font-size:11px;font-weight:700;color:#f0c040;}
+#xp-bar-bg{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+#xp-bar{height:100%;background:#f0c040;width:0%;transition:width 0.3s;border-radius:2px;}
+#dex-btn{background:var(--border);border:none;color:var(--text);padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap;}
+
+/* ── STATUS BAR ─────────────────────────── */
+#status-bar{display:flex;align-items:center;padding:0 6px;background:var(--panel);border-bottom:1px solid var(--border);height:32px;flex-shrink:0;gap:5px;}
+#energy-wrap{display:flex;align-items:center;gap:2px;cursor:pointer;padding:2px 5px;border-radius:5px;background:#1e3020;white-space:nowrap;}
+#energy-wrap .ico{font-size:13px;}
+#energy-text{font-size:10px;color:#90ee90;}
+#score-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+#score-text{font-size:10px;font-weight:700;color:var(--accent);}
+#score-bar-bg{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+#score-bar{height:100%;background:var(--accent);width:0%;transition:width 0.4s;border-radius:2px;}
+#score-goal-text{font-size:8px;color:var(--dim);}
+#diamond-wrap{display:flex;align-items:center;gap:2px;cursor:pointer;padding:2px 5px;border-radius:5px;background:#1e1e32;white-space:nowrap;}
+#diamond-wrap .ico{font-size:13px;}
+#diamond-text{font-size:10px;color:#a0a0ff;}
+#shop-btn{background:none;border:1px solid var(--border);color:var(--dim);padding:1px 6px;border-radius:4px;font-size:9px;cursor:pointer;white-space:nowrap;font-family:inherit;}
+
+/* ── QUEST PANEL ────────────────────────── */
+#quest-panel{display:flex;align-items:center;padding:4px 6px;gap:5px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;height:70px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+#quest-panel::-webkit-scrollbar{display:none;}
+#quest-empty{font-size:11px;color:var(--dim);flex:1;text-align:center;}
+.qcard{min-width:108px;height:62px;background:#182818;border:1px solid var(--border);border-radius:8px;padding:4px 5px;display:flex;flex-direction:column;gap:1px;flex-shrink:0;transition:background 0.2s,border-color 0.2s;}
+.qcard.qdone{opacity:0.4;border-color:#1e2e1e;}
+.qcard.qready{background:#1a3a1a;border-color:var(--accent);box-shadow:0 0 6px rgba(80,200,80,0.3);}
+.qh{display:flex;align-items:center;gap:3px;}
+.qnpc{font-size:15px;line-height:1;}
+.qname{font-size:8px;color:var(--dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:68px;}
+.qreq{font-size:10px;color:var(--text);white-space:nowrap;}
+.qrew{font-size:8px;color:var(--dim);}
+.qbtn{font-size:9px;padding:1px 0;border-radius:3px;border:none;background:var(--border);color:var(--dim);cursor:pointer;font-family:inherit;width:100%;height:15px;line-height:1;}
+.qbtn.ready{background:var(--accent);color:#fff;font-weight:700;}
+
+/* ── BOARD ──────────────────────────────── */
+#board-container{flex:1;overflow:hidden;padding:4px;display:flex;align-items:center;justify-content:center;min-height:0;}
+#board{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:min(100%,calc((100vh - 158px) * 0.75));max-width:420px;}
+
+/* ── CELLS ──────────────────────────────── */
+.cell{aspect-ratio:1;border-radius:10px;border:2.5px solid transparent;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;transition:transform 0.1s,box-shadow 0.15s;touch-action:none;}
+.cell-empty{background:#1a3020;border-color:#2a4030;}
+.cell-filled{}
+.cell-dragging{opacity:0.3;}
+.cell-gen{cursor:pointer;border-style:dashed!important;}
+.cell-gen::after{content:'▶';position:absolute;bottom:2px;right:3px;font-size:8px;opacity:0.6;}
+.cell-gen:active{filter:brightness(1.4);}
+.cell-special{cursor:pointer;border-style:dotted!important;}
+.cell-special:active{filter:brightness(1.4);}
+.cell-rare{animation:rareGlow 2s ease-in-out infinite alternate;}
+@keyframes rareGlow{from{box-shadow:0 0 6px 2px currentColor;}to{box-shadow:0 0 16px 4px currentColor;}}
+
+/* 이모지: 셀의 대부분을 채움 */
+.item-emoji{font-size:clamp(20px,8vw,38px);line-height:1;pointer-events:none;}
+
+/* 레벨 뱃지: 우하단 작은 숫자 */
+.lv-badge{
+  position:absolute;bottom:2px;right:3px;
+  font-size:clamp(9px,2.4vw,13px);font-weight:800;
+  background:rgba(0,0,0,0.55);border-radius:4px;
+  padding:0 3px;line-height:1.5;
+  pointer-events:none;border:1px solid currentColor;
+  min-width:14px;text-align:center;
+}
+/* 생산소/서식지 라벨: 하단 중앙 */
+.gen-lbl{
+  position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+  font-size:clamp(7px,1.8vw,9px);font-weight:700;
+  background:rgba(0,0,0,0.55);border-radius:3px;
+  padding:0 4px;line-height:1.5;pointer-events:none;
+  white-space:nowrap;
+}
+/* 퀘스트 일치 아이템 ✅ 표시 */
+.cell-quest-match::before{
+  content:'✅';position:absolute;top:2px;left:2px;
+  font-size:clamp(10px,2.8vw,15px);z-index:2;line-height:1;
+  filter:drop-shadow(0 0 2px rgba(0,0,0,0.8));
+}
+
+/* ── GHOST ──────────────────────────────── */
+#drag-ghost{position:fixed;pointer-events:none;z-index:999;opacity:0.88;transform:scale(1.15);border-radius:10px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.3);}
+#drag-ghost.hidden{display:none;}
+
+/* ── MODAL ──────────────────────────────── */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+#modal.hidden{display:none;}
+#modal-content{background:#182e18;border:1px solid var(--border);border-radius:18px;padding:20px 16px;max-width:360px;width:100%;max-height:82vh;overflow-y:auto;}
+#modal-content h2{color:var(--accent);font-size:18px;margin-bottom:8px;}
+#modal-content h3{color:var(--accent);font-size:15px;margin-bottom:8px;}
+#modal-content p{color:var(--dim);font-size:13px;line-height:1.6;margin-bottom:8px;}
+.mbtn{display:block;width:100%;background:var(--accent);border:none;border-radius:10px;color:#fff;padding:10px;font-size:14px;cursor:pointer;margin-top:8px;font-family:inherit;font-weight:600;}
+.mbtn.cancel{background:#3a4a3a;}
+.mbtn.diamond{background:#4040a0;}
+
+/* Shop */
+.shop-header{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#1e3020;border-radius:8px;margin-bottom:12px;}
+.shop-stat{display:flex;align-items:center;gap:4px;font-size:13px;}
+.shop-section{margin-bottom:14px;}
+.shop-section-title{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.shop-item{display:flex;align-items:center;padding:8px 10px;background:#1a2e1a;border-radius:8px;margin:4px 0;gap:10px;border:1px solid transparent;}
+.shop-item-ico{font-size:24px;flex-shrink:0;}
+.shop-item-info{flex:1;}
+.shop-item-name{font-size:12px;font-weight:600;color:var(--text);}
+.shop-item-desc{font-size:10px;color:var(--dim);}
+.shop-item-price{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
+.shop-item-cost{font-size:12px;font-weight:700;color:#a0a0ff;}
+.shop-item-btn{font-size:9px;padding:2px 8px;border-radius:4px;border:none;background:#4040a0;color:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.shop-item-btn:disabled{background:var(--border);color:var(--dim);cursor:default;}
+.shop-daily-badge{font-size:9px;padding:1px 5px;border-radius:3px;background:#6a3000;color:#ffb060;margin-left:4px;}
+
+/* DEX / other */
+.gen-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;}
+.gen-select-btn{background:#1e381e;border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-family:inherit;}
+.gen-select-btn:active{border-color:var(--accent);}
+.gen-select-btn .ge{font-size:26px;display:block;}
+.gen-select-btn .gn{font-size:12px;font-weight:700;display:block;margin:4px 0 2px;}
+.gen-select-btn .gs{font-size:10px;color:var(--dim);display:block;}
+.celebration{text-align:center;}
+.cel-emoji{font-size:68px;display:block;margin-bottom:10px;animation:pop 0.4s ease;}
+@keyframes pop{0%,100%{transform:scale(1);}50%{transform:scale(1.3);}}
+.cell-pop{animation:pop 0.28s ease!important;}
+.cel-count{color:var(--accent)!important;font-weight:700!important;}
+.unlock-box{background:#243824;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#c8f0c8;}
+.dex-items{margin:10px 0;max-height:50vh;overflow-y:auto;}
+.dex-group{margin-bottom:12px;}
+.dex-group-title{font-size:12px;font-weight:700;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.dex-entry{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;}
+.dex-date{font-size:10px;color:var(--dim);}
+.dex-total{text-align:center;color:var(--accent);font-weight:700;margin-top:8px;}
+.lvlbonus{background:#2a2000;border:1px solid #a08020;border-radius:8px;padding:10px;margin:8px 0;font-size:13px;color:#f0d060;text-align:center;}
+
+/* Dev btn */
+#dev-btn{position:fixed;bottom:10px;right:10px;background:none;border:none;font-size:13px;opacity:0.12;cursor:pointer;z-index:50;color:var(--dim);padding:4px;}
+#dev-btn:active{opacity:0.6;}
+
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,18,8,0.94);color:#d0eed0;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:200;white-space:nowrap;border:1px solid var(--border);}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="top-bar">
+  <span id="chapter-label">챕터 1</span>
+  <div id="level-wrap">
+    <span id="level-text">Lv.1</span>
+    <div id="xp-bar-bg"><div id="xp-bar"></div></div>
+  </div>
+  <button id="dex-btn" onclick="showDex()">📋 도감</button>
+</div>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <div id="energy-wrap" onclick="showEnergyModal()">
+    <span class="ico">⚡</span><span id="energy-text">100/100</span>
+  </div>
+  <div id="score-wrap">
+    <span id="score-text">0점</span>
+    <div id="score-bar-bg"><div id="score-bar"></div></div>
+    <span id="score-goal-text">목표 300점</span>
+  </div>
+  <div id="diamond-wrap" onclick="showShop()">
+    <span class="ico">💎</span><span id="diamond-text">5</span>
+  </div>
+  <button id="shop-btn" onclick="showShop()">🛒 상점</button>
+</div>
+
+<!-- QUEST PANEL -->
+<div id="quest-panel">
+  <div id="quest-empty">🌱 서식지를 만들면 퀘스트가 시작됩니다!</div>
+</div>
+
+<!-- BOARD -->
+<div id="board-container"><div id="board"></div></div>
+
+<!-- MODAL -->
+<div id="modal" class="hidden" onclick="handleModalBg(event)">
+  <div id="modal-content"><div id="modal-body"></div></div>
+</div>
+
+<button id="dev-btn" onclick="showDevMenu()" title="dev">⚙</button>
+<div id="toast"></div>
+<div id="drag-ghost" class="hidden"></div>
+
+<script>
+// 레벨별 테두리 색상: Lv1~6
+const LV_COLORS=['#888888','#27ae60','#2980b9','#8e44ad','#e67e22','#f0c040'];
+
+const SPECIALS={
+  energy_pack:  {type:'energy_pack',  emoji:'⚡',name:'에너지 팩',   color:'#90ee90',bg:'#0a240a'},
+  diamond_shard:{type:'diamond_shard',emoji:'💎',name:'다이아 조각', color:'#a0a0ff',bg:'#0a0a30'},
+  alt_habitat:  {type:'alt_habitat',  emoji:'🌊',name:'대체 서식지', color:'#40d0d0',bg:'#0a2028'},
+};
+
+const CHAINS={
+  equipment:{id:'equipment',name:'조사장비',isBase:true,color:'#4a9fe4',bg:'#0e2848',items:[
+    {level:1,name:'낡은 쌍안경',emoji:'🔭'},{level:2,name:'쌍안경',emoji:'🔭'},
+    {level:3,name:'카메라트랩',emoji:'📷'},{level:4,name:'GPS 추적기',emoji:'📡'},
+    {level:5,name:'드론',emoji:'🚁'},{level:6,name:'위성추적기',emoji:'🛰️'}]},
+  researcher:{id:'researcher',name:'연구원',isBase:true,color:'#b06ad0',bg:'#240e38',items:[
+    {level:1,name:'인턴',emoji:'🧑'},{level:2,name:'보조연구원',emoji:'📋'},
+    {level:3,name:'현장조사원',emoji:'🧑‍🔬'},{level:4,name:'야생생물 전문가',emoji:'👨‍🔬'},
+    {level:5,name:'보전생물학자',emoji:'👩‍🔬'},{level:6,name:'수석연구원',emoji:'🏆'}]},
+  amphibian:{id:'amphibian',name:'양서류',chapter:1,color:'#2ecc71',bg:'#0a2c18',items:[
+    {level:1,name:'개구리 알',emoji:'🫧'},{level:2,name:'올챙이',emoji:'🐟'},
+    {level:3,name:'변태 개구리',emoji:'🐸'},{level:4,name:'어린 개구리',emoji:'🐸'},
+    {level:5,name:'번식 성체',emoji:'🐸'},{level:6,name:'수원청개구리',emoji:'🐸',rare:true}]},
+  fish:{id:'fish',name:'어류',chapter:2,color:'#1ee0b0',bg:'#0a2c24',items:[
+    {level:1,name:'물고기 알',emoji:'🫧'},{level:2,name:'치어',emoji:'🐟'},
+    {level:3,name:'어린 물고기',emoji:'🐟'},{level:4,name:'아성어',emoji:'🐠'},
+    {level:5,name:'번식 성어',emoji:'🐠'},{level:6,name:'흰수마자',emoji:'🐡',rare:true}]},
+  bird:{id:'bird',name:'조류',chapter:2,color:'#f09030',bg:'#301808',items:[
+    {level:1,name:'새 알',emoji:'🥚'},{level:2,name:'부화 새끼',emoji:'🐣'},
+    {level:3,name:'어린 새',emoji:'🐤'},{level:4,name:'아성조',emoji:'🐦'},
+    {level:5,name:'성조',emoji:'🦅'},{level:6,name:'황새',emoji:'🦢',rare:true}]},
+  insect:{id:'insect',name:'곤충',chapter:3,color:'#e05050',bg:'#2c0808',items:[
+    {level:1,name:'알',emoji:'🫧'},{level:2,name:'유충',emoji:'🐛'},
+    {level:3,name:'번데기',emoji:'🫘'},{level:4,name:'우화 성충',emoji:'🦋'},
+    {level:5,name:'번식 성충',emoji:'🪲'},{level:6,name:'장수하늘소',emoji:'🦌',rare:true}]},
+  turtle:{id:'turtle',name:'거북',chapter:3,color:'#1ec09a',bg:'#0a2820',items:[
+    {level:1,name:'거북 알',emoji:'🥚'},{level:2,name:'부화 새끼',emoji:'🐢'},
+    {level:3,name:'어린 거북',emoji:'🐢'},{level:4,name:'아성체',emoji:'🐢'},
+    {level:5,name:'성체 거북',emoji:'🐢'},{level:6,name:'남생이',emoji:'🐢',rare:true}]},
+  snake:{id:'snake',name:'뱀',chapter:3,color:'#a060d0',bg:'#1c0a2c',items:[
+    {level:1,name:'뱀 알',emoji:'🥚'},{level:2,name:'새끼 뱀',emoji:'🐍'},
+    {level:3,name:'어린 뱀',emoji:'🐍'},{level:4,name:'아성체 뱀',emoji:'🐍'},
+    {level:5,name:'성체 뱀',emoji:'🐍'},{level:6,name:'비바리뱀',emoji:'🐍',rare:true}]},
+  mammal:{id:'mammal',name:'포유류',chapter:3,color:'#c06020',bg:'#280c04',items:[
+    {level:1,name:'포유류 새끼',emoji:'🐾'},{level:2,name:'어린 개체',emoji:'🐻'},
+    {level:3,name:'아성체',emoji:'🐻'},{level:4,name:'성체',emoji:'🐻'},
+    {level:5,name:'번식 성체',emoji:'🐻'},{level:6,name:'반달가슴곰',emoji:'🐼',rare:true}]},
+};
+
+const NPCS=[
+  {emoji:'🧑‍⚕️',name:'환경부 장관'},{emoji:'👩‍🔬',name:'현장 연구원'},
+  {emoji:'🧑‍🌾',name:'생태학자'},{emoji:'👨‍🏫',name:'교수님'},
+  {emoji:'👩‍💼',name:'보전 활동가'},{emoji:'🦺',name:'자원봉사자'},
+  {emoji:'🧓',name:'마을 어르신'},{emoji:'👧',name:'환경 운동가'},
+];
+
+const CHAPTER_DATA=[
+  {n:1,title:'한반도의 위기',scoreGoal:300,unlocks:['amphibian']},
+  {n:2,title:'강과 하늘',scoreGoal:700,unlocks:['fish','bird']},
+  {n:3,title:'숲의 수호자',scoreGoal:1400,unlocks:['insect','turtle','snake','mammal']},
+  {n:4,title:'두 번째 봄',scoreGoal:2500,unlocks:[]},
+];
+function getCD(n){ return CHAPTER_DATA[Math.min(n-1,CHAPTER_DATA.length-1)]; }
+
+function xpNeeded(lv){ return 50+(lv-1)*30; }
+
+const LEVEL_BONUSES={
+  5:{maxEnergy:10,desc:'최대 에너지 +10'},
+  10:{diamonds:3,desc:'💎 3 지급'},
+  15:{maxEnergy:10,desc:'최대 에너지 +10'},
+  20:{diamonds:5,desc:'💎 5 지급'},
+  25:{maxEnergy:15,desc:'최대 에너지 +15'},
+  30:{diamonds:8,desc:'💎 8 지급'},
+  35:{maxEnergy:15,desc:'최대 에너지 +15'},
+  40:{diamonds:10,specialItem:'energy_pack',desc:'💎 10 + ⚡ 에너지 팩'},
+  45:{maxEnergy:20,desc:'최대 에너지 +20'},
+  50:{diamonds:15,specialItem:'diamond_shard',desc:'💎 15 + 💎 다이아 조각'},
+  55:{maxEnergy:20,desc:'최대 에너지 +20'},
+  60:{diamonds:15,specialItem:'alt_habitat',desc:'💎 15 + 🌊 대체 서식지'},
+  65:{maxEnergy:25,desc:'최대 에너지 +25'},
+  70:{diamonds:20,specialItem:'energy_pack',desc:'💎 20 + ⚡ 에너지 팩'},
+  75:{maxEnergy:25,desc:'최대 에너지 +25'},
+  80:{diamonds:20,specialItem:'diamond_shard',desc:'💎 20 + 💎 다이아 조각'},
+  85:{maxEnergy:30,desc:'최대 에너지 +30'},
+  90:{diamonds:25,desc:'💎 25 지급'},
+  95:{maxEnergy:30,desc:'최대 에너지 +30'},
+  100:{maxEnergy:50,diamonds:50,desc:'🎉 최대 에너지 +50 + 💎 50 (만렙 달성!)'},
+};
+
+function getRegenMs(){
+  if(G.level>=60) return 90000;
+  if(G.level>=30) return 120000;
+  if(G.level>=10) return 150000;
+  return 120000; // DESIGN-3: 초반 재생 120s로 완화
+}
+
+// ── STATE ───────────────────────────────────
+const COLS=6,ROWS=8,CELLS=COLS*ROWS;
+let G={
+  board:Array(CELLS).fill(null),
+  chapter:1,score:0,conserved:[],
+  unlocked:['equipment','researcher','amphibian'],
+  quests:[],questBatchCount:0,
+  energy:120,maxEnergy:120,lastEnergyTime:Date.now(), // DESIGN-3: 초기 에너지 120
+  diamonds:5,level:1,xp:0,
+};
+let _uid=1;
+function mkItem(chain,level){ return {chain,level,uid:_uid++}; }
+function mkGen(chain){ return {chain,isGenerator:true,uid:'gen_'+chain}; }
+function mkSpecial(type){ return {isSpecial:true,type,uid:_uid++}; }
+
+// ── STORAGE ─────────────────────────────────
+function save(){ try{ localStorage.setItem('eco_v2',JSON.stringify(G)); }catch(e){} }
+function load(){
+  try{
+    const d=localStorage.getItem('eco_v2');
+    if(!d) return false;
+    const p=JSON.parse(d);
+    if(p.quest!==undefined){ delete p.quest; p.quests=[]; }
+    if(!Array.isArray(p.quests)||p.quests.length<3||(p.quests[0]&&p.quests[0].xpReward===undefined)){
+      p.quests=[];
+    }
+    G=Object.assign(G,p);
+    if(G.energy===undefined) G.energy=G.maxEnergy||120;
+    if(!G.maxEnergy) G.maxEnergy=120;
+    if(G.diamonds===undefined) G.diamonds=0;
+    if(!G.level) G.level=1;
+    if(!G.xp) G.xp=0;
+    if(!G.lastEnergyTime) G.lastEnergyTime=Date.now();
+    if(!G.questBatchCount) G.questBatchCount=0;
+    // BUG-4: _uid 복원
+    const maxUid=G.board.reduce((m,it)=>(it&&typeof it.uid==='number'&&it.uid>m)?it.uid:m,0);
+    _uid=maxUid+1;
+    return true;
+  }catch(e){ return false; }
+}
+
+
+// ── ENERGY ──────────────────────────────────
+function regenEnergy(){
+  if(G.energy>=G.maxEnergy){ G.lastEnergyTime=Date.now(); return; }
+  const elapsed=Date.now()-G.lastEnergyTime;
+  const ms=getRegenMs();
+  const gained=Math.floor(elapsed/ms);
+  if(gained>0){ G.energy=Math.min(G.maxEnergy,G.energy+gained); G.lastEnergyTime+=gained*ms; save(); }
+}
+function updateEnergyUI(){
+  regenEnergy();
+  const el=document.getElementById('energy-text');
+  if(G.energy>=G.maxEnergy){ el.textContent=G.energy+'/'+G.maxEnergy; return; }
+  const rem=getRegenMs()-((Date.now()-G.lastEnergyTime)%getRegenMs());
+  const m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+  el.textContent=G.energy+'/'+G.maxEnergy+' '+m+':'+String(s).padStart(2,'0');
+}
+function addEnergy(n){ G.energy=Math.min(G.maxEnergy,G.energy+n); save(); updateEnergyUI(); }
+function spendEnergy(n){
+  if(G.energy<n){ toast('에너지가 부족해요! ⚡'); return false; }
+  G.energy-=n; save(); updateEnergyUI(); return true;
+}
+function showEnergyModal(){
+  updateEnergyUI();
+  const full=G.energy>=G.maxEnergy, need=G.maxEnergy-G.energy;
+  showModal(`<div style="text-align:center">
+    <div style="font-size:42px;margin:8px 0">⚡</div>
+    <h3>에너지</h3>
+    <p><b style="color:#90ee90;font-size:22px">${G.energy}/${G.maxEnergy}</b></p>
+    <p style="font-size:11px;color:var(--dim)">생산소·대체서식지 탭 시 1 소모</p>
+    ${!full&&G.diamonds>=10?`<button class="mbtn diamond" onclick="buyEnergy(10,50)">💎 10 → ⚡ +50 충전</button>`:''}
+    ${!full&&need>0&&G.diamonds>=30?`<button class="mbtn diamond" onclick="buyEnergy(30,${need})">💎 30 → ⚡ 전량(+${need}) 충전</button>`:''}
+    <button class="mbtn cancel" onclick="hideModal();showShop()">🛒 상점 가기</button>
+    <button class="mbtn cancel" onclick="hideModal()">닫기</button>
+  </div>`);
+}
+function buyEnergy(cost,amt){
+  if(G.diamonds<cost){ toast('다이아가 부족해요!'); return; }
+  G.diamonds-=cost; addEnergy(amt); updateDiamondUI(); hideModal();
+  toast('⚡ +'+amt+' 충전! (💎 -'+cost+')');
+}
+
+// ── DIAMONDS ────────────────────────────────
+function updateDiamondUI(){ document.getElementById('diamond-text').textContent=G.diamonds; }
+function addDiamonds(n){ G.diamonds+=n; save(); updateDiamondUI(); }
+
+// ── SHOP ────────────────────────────────────
+function showShop(){
+  updateEnergyUI();
+  const items=[
+    {id:'energy30',ico:'⚡',name:'에너지 +30',desc:'즉시 에너지 30 회복',cost:5,tag:''},
+    {id:'energy_full',ico:'⚡⚡',name:'에너지 전량 충전',desc:'에너지를 최대치로 즉시 충전',cost:20,tag:'인기'},
+    {id:'energy_pack',ico:'⚡',name:'에너지 팩 (아이템)',desc:'보드에 배치 → 탭하면 +30 에너지',cost:8,tag:''},
+    {id:'diamond_shard',ico:'💎',name:'다이아 조각 (아이템)',desc:'보드에 배치 → 탭하면 💎+1',cost:12,tag:''},
+    {id:'alt_habitat',ico:'🌊',name:'대체 서식지 (아이템)',desc:'보드에 배치 → 양서류 무작위 생산',cost:20,tag:''},
+    {id:'energy_max5',ico:'💪',name:'에너지 한도 +5',desc:'최대 에너지 영구 증가',cost:15,tag:'영구'},
+  ];
+  let rows='';
+  items.forEach(it=>{
+    const ok=G.diamonds>=it.cost;
+    rows+=`<div class="shop-item">
+      <div class="shop-item-ico">${it.ico}</div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">${it.name}${it.tag?'<span class="shop-daily-badge">'+it.tag+'</span>':''}</div>
+        <div class="shop-item-desc">${it.desc}</div>
+      </div>
+      <div class="shop-item-price">
+        <div class="shop-item-cost">💎 ${it.cost}</div>
+        <button class="shop-item-btn" onclick="shopBuy('${it.id}')" ${ok?'':'disabled'}>${ok?'구매':'부족'}</button>
+      </div>
+    </div>`;
+  });
+  showModal(`<h3>🛒 상점</h3>
+    <div class="shop-header">
+      <div class="shop-stat">⚡ <b style="color:#90ee90">${G.energy}/${G.maxEnergy}</b></div>
+      <div class="shop-stat">💎 <b style="color:#a0a0ff">${G.diamonds}</b></div>
+    </div>
+    <div class="shop-section"><div class="shop-section-title">아이템 구매</div>${rows}</div>
+    <p style="font-size:10px;color:var(--dim);text-align:center">💎는 레벨업·퀘스트 배치 완료 시 획득</p>
+    <button class="mbtn cancel" onclick="hideModal()">닫기</button>`);
+}
+function shopBuy(id){
+  const costs={energy30:5,energy_full:20,energy_pack:8,diamond_shard:12,alt_habitat:20,energy_max5:15};
+  const cost=costs[id];
+  if(G.diamonds<cost){ toast('💎 다이아가 부족해요!'); return; }
+  G.diamonds-=cost; updateDiamondUI();
+  if(id==='energy30'){ addEnergy(30); toast('⚡ +30 에너지!'); }
+  else if(id==='energy_full'){ addEnergy(G.maxEnergy-G.energy); toast('⚡ 전량 충전!'); }
+  else if(id==='energy_max5'){ G.maxEnergy+=5; addEnergy(5); toast('💪 최대 에너지 +5!'); }
+  else{ spawnSpecialItem(id); }
+  save(); hideModal(); showShop();
+}
+
+// ── DEV MENU ────────────────────────────────
+function showDevMenu(){
+  showModal(`<h3>🔧 개발자 메뉴</h3>
+    <p style="font-size:11px;color:var(--dim)">게임 제작자 전용입니다.</p>
+    <button class="mbtn" onclick="devAdd('energy',100)">⚡ 에너지 +100</button>
+    <button class="mbtn diamond" onclick="devAdd('diamonds',10)">💎 다이아 +10</button>
+    <button class="mbtn diamond" onclick="devAdd('diamonds',50)">💎 다이아 +50</button>
+    <button class="mbtn" style="background:#3a3a00" onclick="devAdd('xp',500)">⬆️ XP +500</button>
+    <button class="mbtn" style="background:#2a2a3a" onclick="devAdd('score',300)">📈 점수 +300</button>
+    <button class="mbtn" style="background:#0a2820" onclick="devSpawn()">🎁 특수아이템 3종 소환</button>
+    <button class="mbtn cancel" onclick="hideModal()">닫기</button>`);
+}
+function devAdd(key,val){
+  hideModal();
+  if(key==='energy') addEnergy(val);
+  else if(key==='diamonds'){ addDiamonds(val); toast('💎 +'+val); }
+  else if(key==='xp'){ addXP(val); toast('XP +'+val); }
+  else if(key==='score'){ addScore(val); toast('점수 +'+val); }
+  showDevMenu();
+}
+function devSpawn(){
+  ['energy_pack','diamond_shard','alt_habitat'].forEach(t=>spawnSpecialItem(t));
+  hideModal(); toast('🎁 특수아이템 3종 소환!');
+}
+
+// ── LEVEL & XP ──────────────────────────────
+function updateLevelUI(){
+  document.getElementById('level-text').textContent='Lv.'+G.level;
+  document.getElementById('xp-bar').style.width=(Math.min(1,G.xp/xpNeeded(G.level))*100)+'%';
+}
+function addXP(pts){
+  if(G.level>=100) return;
+  G.xp+=pts;
+  while(G.level<100){
+    const need=xpNeeded(G.level);
+    if(G.xp>=need){ G.xp-=need; G.level++; applyLevelBonus(G.level); }
+    else break;
+  }
+  if(G.level>=100) G.xp=0;
+  save(); updateLevelUI();
+}
+function applyLevelBonus(lv){
+  const b=LEVEL_BONUSES[lv]; if(!b) return;
+  if(b.maxEnergy){ G.maxEnergy+=b.maxEnergy; addEnergy(b.maxEnergy); }
+  if(b.diamonds) addDiamonds(b.diamonds);
+  if(b.specialItem) spawnSpecialItem(b.specialItem);
+  vibrate([30,15,30]); // UX-1: 레벨업 햅틱
+  showModal(`<div class="celebration">
+    <span class="cel-emoji">⬆️</span>
+    <h2>레벨 업! Lv.${lv}</h2>
+    <div class="lvlbonus">🎁 ${b.desc}</div>
+    <button class="mbtn" onclick="hideModal()">확인</button>
+  </div>`);
+}
+
+// ── QUESTS ──────────────────────────────────
+function generateQuestBatch(){
+  // DESIGN-2: 보드에 서식지가 있는 종만 후보
+  const hasGen=c=>G.board.some(b=>b&&b.isGenerator&&b.chain===c);
+  let sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c)&&hasGen(c));
+  if(!sp.length) sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
+  if(!sp.length){ renderQuests(); return; }
+  G.quests=[];
+  for(let i=0;i<3;i++){
+    const chain=sp[Math.floor(Math.random()*sp.length)];
+    const maxLv=Math.min(Math.floor(G.score/80)+2,5);
+    const level=Math.max(1,Math.min(maxLv,1+Math.floor(Math.random()*maxLv)));
+    const count=level<=2?2:1;
+    G.quests.push({
+      chain,level,count,
+      scoreReward:level*20*count,
+      xpReward:level*30+count*10,
+      npc:NPCS[Math.floor(Math.random()*NPCS.length)],
+      done:false
+    });
+  }
+  save(); renderQuests();
+}
+
+function renderQuests(){
+  const panel=document.getElementById('quest-panel');
+  const sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
+  if(!sp.length||!G.quests.length){
+    panel.innerHTML='<div id="quest-empty">🌱 서식지를 만들면 퀘스트가 시작됩니다!</div>';
+    return;
+  }
+  let html='';
+  G.quests.forEach((q,i)=>{
+    const ch=CHAINS[q.chain], it=ch.items[q.level-1];
+    const found=q.done?q.count:G.board.filter(c=>c&&!c.isGenerator&&!c.isSpecial&&c.chain===q.chain&&c.level===q.level).length;
+    const ready=!q.done&&found>=q.count;
+    html+=`<div class="qcard${q.done?' qdone':ready?' qready':''}">
+      <div class="qh"><span class="qnpc">${q.npc.emoji}</span><span class="qname">${q.npc.name}</span></div>
+      <div class="qreq">${it.emoji} Lv${q.level}×${q.count}${q.done?' ✅':' ('+Math.min(found,q.count)+'/'+q.count+')'}</div>
+      <div class="qrew">+${q.scoreReward}점 +${q.xpReward}XP</div>
+      <button class="qbtn${ready?' ready':''}" onclick="fulfillQuest(${i})" ${q.done||!ready?'disabled':''}>${q.done?'완료':'제출'}</button>
+    </div>`;
+  });
+  panel.innerHTML=html;
+}
+
+function fulfillQuest(idx){
+  const q=G.quests[idx]; if(!q||q.done) return;
+  const found=G.board.filter(c=>c&&!c.isGenerator&&!c.isSpecial&&c.chain===q.chain&&c.level===q.level).length;
+  if(found<q.count){ toast('아이템이 부족해요!'); return; }
+  let rm=0;
+  for(let i=0;i<G.board.length&&rm<q.count;i++){
+    const c=G.board[i];
+    if(c&&!c.isGenerator&&!c.isSpecial&&c.chain===q.chain&&c.level===q.level){ G.board[i]=null; rm++; }
+  }
+  q.done=true;
+  addScore(q.scoreReward); addXP(q.xpReward);
+  toast('퀘스트 완료! +'+q.scoreReward+'점 🌿');
+  if(G.quests.every(q=>q.done)){
+    G.questBatchCount=(G.questBatchCount||0)+1;
+    if(G.questBatchCount%3===0) spawnSpecialItem();
+    if(G.questBatchCount%5===0){ addDiamonds(1); toast('💎 +1 배치 보너스!'); }
+    setTimeout(generateQuestBatch,1000);
+  }
+  save(); renderBoard(); renderQuests();
+}
+
+// ── SCORE & CHAPTER ─────────────────────────
+function addScore(pts){ G.score+=pts; updateScoreUI(); checkChapterAdvance(); save(); }
+function updateScoreUI(){
+  const ch=getCD(G.chapter);
+  const prev=G.chapter>1?getCD(G.chapter-1).scoreGoal:0;
+  const goal=G.chapter>=CHAPTER_DATA.length?Infinity:ch.scoreGoal;
+  const prog=goal===Infinity?1:Math.min(1,(G.score-prev)/(ch.scoreGoal-prev));
+  document.getElementById('score-text').textContent=G.score+'점';
+  document.getElementById('score-bar').style.width=(prog*100)+'%';
+  document.getElementById('score-goal-text').textContent=goal===Infinity?'최고 챕터':'목표 '+ch.scoreGoal+'점';
+}
+function checkChapterAdvance(){
+  // BUG-1: 마지막 챕터 상한 가드
+  if(G.chapter>=CHAPTER_DATA.length) return;
+  // BUG-2: while 루프로 여러 챕터 동시 승급 처리
+  while(G.chapter<CHAPTER_DATA.length){
+    const ch=getCD(G.chapter);
+    if(G.score<ch.scoreGoal) break;
+    G.chapter++;
+    const nc=getCD(G.chapter);
+    if(nc&&nc.unlocks) nc.unlocks.forEach(c=>{ if(!G.unlocked.includes(c)) G.unlocked.push(c); });
+    document.getElementById('chapter-label').textContent='챕터 '+G.chapter;
+    if(nc&&nc.unlocks&&nc.unlocks.length){
+      toast('📖 챕터 '+G.chapter+'! 🔓 '+nc.unlocks.map(c=>CHAINS[c].name).join(', ')+' 해금!');
+      setTimeout(generateQuestBatch,600);
+    } else {
+      toast('📖 챕터 '+G.chapter+' — '+nc.title+'!');
+    }
+  }
+  save(); updateScoreUI();
+}
+
+// ── BOARD LOGIC ─────────────────────────────
+function nearestEmpty(fromIdx){
+  let best=-1,bd=Infinity;
+  const fc=fromIdx%COLS,fr=Math.floor(fromIdx/COLS);
+  for(let i=0;i<G.board.length;i++){
+    if(G.board[i]===null){
+      const d=Math.abs(i%COLS-fc)+Math.abs(Math.floor(i/COLS)-fr);
+      if(d<bd){bd=d;best=i;}
+    }
+  }
+  return best;
+}
+function tapGenerator(idx){
+  const gen=G.board[idx]; if(!gen||!gen.isGenerator) return;
+  if(!spendEnergy(1)) return;
+  const e=nearestEmpty(idx);
+  if(e===-1){ addEnergy(1); toast('보드가 가득 찼어요!'); return; }
+  G.board[e]=mkItem(gen.chain,1);
+  save(); renderBoard(); addScore(1); renderQuests();
+}
+function tapSpecial(idx){
+  const item=G.board[idx]; if(!item||!item.isSpecial) return;
+  if(item.type==='energy_pack'){
+    G.board[idx]=null; addEnergy(30); save(); renderBoard(); toast('⚡ +30 에너지!');
+  } else if(item.type==='diamond_shard'){
+    G.board[idx]=null; addDiamonds(1); save(); renderBoard(); toast('💎 +1 다이아!');
+  } else if(item.type==='alt_habitat'){
+    if(!spendEnergy(1)) return;
+    const e=nearestEmpty(idx);
+    if(e===-1){ addEnergy(1); toast('보드가 가득 찼어요!'); return; }
+    // DESIGN-5: 해금된 종 중 랜덤
+    const sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
+    const chain=sp.length?sp[Math.floor(Math.random()*sp.length)]:'amphibian';
+    const lv=Math.ceil(Math.random()*3);
+    G.board[e]=mkItem(chain,lv);
+    save(); renderBoard(); addScore(1); renderQuests();
+    toast('🌊 '+CHAINS[chain].name+' Lv'+lv+' 생산!');
+  }
+}
+function spawnSpecialItem(type){
+  const types=['energy_pack','diamond_shard','alt_habitat'];
+  const t=type||types[Math.floor(Math.random()*types.length)];
+  const e=nearestEmpty(0);
+  if(e===-1){ toast('보드가 가득 차 보너스 아이템을 못 받았어요!'); return; }
+  G.board[e]=mkSpecial(t); save(); renderBoard();
+  toast('🎁 '+SPECIALS[t].name+' 획득!');
+}
+function handleDrop(fromIdx,toIdx){
+  if(fromIdx===toIdx) return;
+  const from=G.board[fromIdx],to=G.board[toIdx];
+  if(!from) return;
+  if(from.isGenerator||from.isSpecial){
+    if(!to){ G.board[toIdx]=from; G.board[fromIdx]=null; }
+    else{ G.board[toIdx]=from; G.board[fromIdx]=to; }
+    save(); renderBoard(); return;
+  }
+  if(!to){ G.board[toIdx]=from; G.board[fromIdx]=null; save(); renderBoard(); return; }
+  if(to.isGenerator||to.isSpecial){ G.board[toIdx]=from; G.board[fromIdx]=to; save(); renderBoard(); return; }
+  if(from.chain===to.chain&&from.level===to.level){
+    const next=from.level+1,ch=CHAINS[from.chain];
+    if(ch&&next<=ch.items.length){
+      G.board[toIdx]=mkItem(from.chain,next); G.board[fromIdx]=null;
+      save(); renderBoard();
+      // UX-3: 합성 애니메이션
+      const mc=document.querySelector('.cell[data-idx="'+toIdx+'"]');
+      if(mc){ mc.classList.add('cell-pop'); setTimeout(()=>mc.classList.remove('cell-pop'),300); }
+      // UX-1: 햅틱
+      vibrate([20]);
+      if(ch.items[next-1].rare) onRare(from.chain,next);
+      addScore(5*next); renderQuests();
+    } else { toast('이미 최고 등급이에요!'); save(); renderBoard(); }
+    return;
+  }
+  const isEq=c=>c.chain==='equipment'&&c.level===6;
+  const isRe=c=>c.chain==='researcher'&&c.level===6;
+  if((isEq(from)&&isRe(to))||(isRe(from)&&isEq(to))){ showSpeciesGenSelect(fromIdx,toIdx); return; }
+  G.board[toIdx]=from; G.board[fromIdx]=to; save(); renderBoard();
+}
+function showSpeciesGenSelect(fi,ti){
+  const av=G.unlocked.filter(c=>!['equipment','researcher'].includes(c)&&!G.board.some(b=>b&&b.isGenerator&&b.chain===c));
+  if(!av.length){ toast('만들 수 있는 서식지가 없어요'); save(); renderBoard(); return; }
+  const opts=av.map(cid=>{
+    const ch=CHAINS[cid];
+    return `<button class="gen-select-btn" onclick="createSpeciesGen(${fi},${ti},'${cid}')">
+      <span class="ge">${ch.items[0].emoji}</span>
+      <span class="gn" style="color:${ch.color}">${ch.name} 서식지</span>
+      <span class="gs">탭하면 Lv1 생산</span></button>`;
+  }).join('');
+  showModal(`<h3>🏕️ 서식지 조성</h3><p>어떤 종의 서식지를 만들까요?</p>
+    <div class="gen-select-grid">${opts}</div>
+    <button class="mbtn cancel" onclick="hideModal();renderBoard()">취소</button>`);
+}
+function createSpeciesGen(fi,ti,chain){
+  G.board[fi]=null; G.board[ti]=mkGen(chain);
+  hideModal(); save(); renderBoard();
+  toast(CHAINS[chain].name+' 서식지 생성! 🌿');
+  if(!G.quests||G.quests.length===0) setTimeout(generateQuestBatch,500);
+}
+function onRare(chain,level){
+  const ch=CHAINS[chain],it=ch.items[level-1];
+  G.conserved.push({chain,name:it.name,emoji:it.emoji,date:new Date().toLocaleDateString('ko-KR')});
+  save(); vibrate([40,20,80]); // UX-1: 희귀종 햅틱
+  showModal(`<div class="celebration"><span class="cel-emoji">${it.emoji}</span>
+    <h2>${it.name} 복원!</h2>
+    <p style="color:#c8e6c8;margin:8px 0">${it.name}이(가) 돌아왔습니다!</p>
+    <p class="cel-count">누적 복원: ${G.conserved.length}종 🌿</p>
+    <button class="mbtn" onclick="hideModal()">계속하기</button></div>`);
+  addScore(150);
+}
+
+// ── HAPTIC ───────────────────────────────────
+function vibrate(p){ try{ navigator.vibrate&&navigator.vibrate(p); }catch(e){} }
+
+// ── DRAG ────────────────────────────────────
+const drag={active:false,fromIdx:null,startX:0,startY:0,moved:false,isTouch:false};
+let _lpTimer=null;
+
+function initDrag(){
+  const b=document.getElementById('board');
+  b.addEventListener('touchstart',onTS,{passive:false});
+  b.addEventListener('touchmove',onTM,{passive:false});
+  b.addEventListener('touchend',onTE);
+  b.addEventListener('touchcancel',onTC); // BUG-3
+  b.addEventListener('mousedown',onMS);
+  document.addEventListener('mousemove',onMM);
+  document.addEventListener('mouseup',onME);
+}
+function onTS(e){
+  const cell=e.target.closest('.cell'); if(!cell) return;
+  const idx=+cell.dataset.idx,item=G.board[idx],t=e.touches[0];
+  drag.startX=t.clientX; drag.startY=t.clientY;
+  drag.fromIdx=idx; drag.moved=false; drag.active=false; drag.isTouch=true;
+  if(item) e.preventDefault();
+  // DESIGN-1: 길게 누르기 → 삭제 (500ms)
+  clearTimeout(_lpTimer);
+  if(item&&!item.isGenerator){
+    var _pressIdx=idx; // 클로저로 캡처
+    _lpTimer=setTimeout(function(){
+      _lpTimer=null;
+      drag.fromIdx=null; drag.active=false; drag.moved=false;
+      vibrate([30]);
+      showDeleteModal(_pressIdx);
+    },300); // 300ms: Android touchcancel(~350ms)보다 먼저
+  }
+}
+function onTM(e){
+  clearTimeout(_lpTimer); _lpTimer=null;
+  if(drag.fromIdx===null) return;
+  const item=G.board[drag.fromIdx]; if(!item) return;
+  e.preventDefault();
+  const t=e.touches[0];
+  const dx=t.clientX-drag.startX,dy=t.clientY-drag.startY;
+  if(!drag.active&&Math.hypot(dx,dy)>7){ drag.active=true; drag.moved=true; startGhost(drag.fromIdx,t.clientX,t.clientY); }
+  if(drag.active) moveGhost(t.clientX,t.clientY);
+}
+function onTE(e){
+  clearTimeout(_lpTimer); _lpTimer=null;
+  const t=e.changedTouches[0];
+  if(drag.active){ endDrag(t.clientX,t.clientY); }
+  else if(!drag.moved&&drag.fromIdx!==null){
+    const item=G.board[drag.fromIdx];
+    if(item&&item.isGenerator) tapGenerator(drag.fromIdx);
+    else if(item&&item.isSpecial) tapSpecial(drag.fromIdx);
+  }
+  drag.active=false; drag.fromIdx=null; drag.moved=false;
+  setTimeout(()=>{ drag.isTouch=false; },500);
+}
+// BUG-3: touchcancel 처리
+function onTC(){
+  clearTimeout(_lpTimer); _lpTimer=null;
+  document.getElementById('drag-ghost').classList.add('hidden');
+  const src=document.querySelector('.cell-dragging');
+  if(src) src.classList.remove('cell-dragging');
+  drag.active=false; drag.fromIdx=null; drag.moved=false;
+}
+
+// DESIGN-1: 방생(삭제) 기능
+function showDeleteModal(idx){
+  const item=G.board[idx]; if(!item||item.isGenerator) return;
+  drag.fromIdx=null; drag.active=false; drag.moved=false;
+  var ch=item.isSpecial?null:CHAINS[item.chain];
+  var itData=item.isSpecial?SPECIALS[item.type]:(ch&&ch.items?ch.items[item.level-1]:null);
+  var emoji=itData?itData.emoji:'?';
+  var name=itData?itData.name:'아이템';
+  showModal('<div style="text-align:center">'
+    +'<div style="font-size:44px;margin:10px 0">'+emoji+'</div>'
+    +'<h3>🌿 자연으로 방생</h3>'
+    +'<p>'+name+'을(를) 보드에서 제거할까요?</p>'
+    +'<p style="font-size:11px;color:var(--dim)">삭제 시 에너지 1 환급</p>'
+    +'<button class="mbtn" onclick="deleteItem('+idx+')">방생 (+1⚡)</button>'
+    +'<button class="mbtn cancel" onclick="hideModal()">취소</button>'
+    +'</div>');
+}
+function deleteItem(idx){
+  const item=G.board[idx]; if(!item||item.isGenerator) return;
+  G.board[idx]=null; addEnergy(1);
+  hideModal(); save(); renderBoard(); renderQuests();
+  vibrate([15]); toast('🌿 방생했습니다 (+1⚡)');
+}
+function onMS(e){
+  if(drag.isTouch) return;
+  const cell=e.target.closest('.cell'); if(!cell) return;
+  drag.startX=e.clientX; drag.startY=e.clientY;
+  drag.fromIdx=+cell.dataset.idx; drag.moved=false; drag.active=false;
+}
+function onMM(e){
+  if(drag.isTouch||drag.fromIdx===null) return;
+  const item=G.board[drag.fromIdx]; if(!item) return;
+  const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;
+  if(!drag.active&&Math.hypot(dx,dy)>7){ drag.active=true; drag.moved=true; startGhost(drag.fromIdx,e.clientX,e.clientY); }
+  if(drag.active) moveGhost(e.clientX,e.clientY);
+}
+function onME(e){
+  if(drag.isTouch) return;
+  if(drag.active){ endDrag(e.clientX,e.clientY); }
+  else if(!drag.moved&&drag.fromIdx!==null){
+    const item=G.board[drag.fromIdx];
+    if(item&&item.isGenerator) tapGenerator(drag.fromIdx);
+    else if(item&&item.isSpecial) tapSpecial(drag.fromIdx);
+  }
+  drag.active=false; drag.fromIdx=null; drag.moved=false;
+}
+function startGhost(fromIdx,cx,cy){
+  const src=document.querySelector('.cell[data-idx="'+fromIdx+'"]'); if(!src) return;
+  src.classList.add('cell-dragging');
+  const g=document.getElementById('drag-ghost');
+  g.innerHTML=src.innerHTML; g.style.cssText=src.style.cssText;
+  const w=src.offsetWidth;
+  g.style.width=w+'px'; g.style.height=w+'px';
+  g.style.left=(cx-w/2)+'px'; g.style.top=(cy-w/2)+'px';
+  g.style.position='fixed'; g.style.pointerEvents='none';
+  g.style.zIndex='999'; g.style.opacity='0.88'; g.style.transform='scale(1.15)';
+  g.classList.remove('hidden');
+}
+function moveGhost(cx,cy){
+  const g=document.getElementById('drag-ghost');
+  const w=parseFloat(g.style.width)||50;
+  g.style.left=(cx-w/2)+'px'; g.style.top=(cy-w/2)+'px';
+}
+function endDrag(cx,cy){
+  const g=document.getElementById('drag-ghost'); g.classList.add('hidden');
+  const src=document.querySelector('.cell[data-idx="'+drag.fromIdx+'"]');
+  if(src) src.classList.remove('cell-dragging');
+  g.style.display='none';
+  const el=document.elementFromPoint(cx,cy);
+  g.style.display=''; g.classList.add('hidden');
+  const tc=el&&el.closest('.cell');
+  if(tc&&tc.dataset.idx!==undefined) handleDrop(drag.fromIdx,+tc.dataset.idx);
+}
+
+// ── RENDER ──────────────────────────────────
+function renderBoard(){
+  const b=document.getElementById('board'); b.innerHTML='';
+  // 퀘스트 매칭 셋
+  const qSet=new Set();
+  if(G.quests) G.quests.forEach(q=>{ if(!q.done) qSet.add(q.chain+'_'+q.level); });
+
+  G.board.forEach((item,idx)=>{
+    const cell=document.createElement('div');
+    cell.className='cell'; cell.dataset.idx=idx;
+    if(item){
+      if(item.isSpecial){
+        const sp=SPECIALS[item.type];
+        cell.classList.add('cell-filled','cell-special');
+        if(item.type==='alt_habitat') cell.classList.add('cell-gen');
+        cell.style.cssText='background:'+sp.bg+';border-color:'+sp.color+';color:'+sp.color;
+        cell.innerHTML='<div class="item-emoji">'+sp.emoji+'</div>'
+          +'<div class="gen-lbl" style="color:'+sp.color+'">'+(item.type==='alt_habitat'?'서식지':'특수')+'</div>';
+      } else {
+        const ch=CHAINS[item.chain]; if(!ch){ b.appendChild(cell); return; }
+        const it=item.isGenerator?ch.items[0]:ch.items[item.level-1];
+        cell.classList.add('cell-filled');
+        if(item.isGenerator){
+          cell.classList.add('cell-gen');
+          cell.style.cssText='background:'+ch.bg+';border-color:'+ch.color+';color:'+ch.color;
+          cell.innerHTML='<div class="item-emoji">'+(it?it.emoji:'?')+'</div>'
+            +'<div class="gen-lbl" style="color:'+ch.color+'">'+(ch.isBase?'생산소':'서식지')+'</div>';
+        } else {
+          const lvColor=LV_COLORS[item.level-1]||ch.color;
+          if(it&&it.rare) cell.classList.add('cell-rare');
+          // 퀘스트 일치
+          if(qSet.has(item.chain+'_'+item.level)) cell.classList.add('cell-quest-match');
+          cell.style.cssText='background:'+ch.bg+';border-color:'+lvColor+';color:'+ch.color;
+          cell.innerHTML='<div class="item-emoji">'+(it?it.emoji:'?')+'</div>'
+            +'<div class="lv-badge" style="color:'+lvColor+';border-color:'+lvColor+'">'+item.level+'</div>';
+        }
+      }
+    } else { cell.classList.add('cell-empty'); }
+    b.appendChild(cell);
+  });
+}
+
+// ── MODAL & TOAST ────────────────────────────
+function showModal(html){ document.getElementById('modal-body').innerHTML=html; document.getElementById('modal').classList.remove('hidden'); }
+function hideModal(){ document.getElementById('modal').classList.add('hidden'); }
+function handleModalBg(e){ if(e.target.id==='modal') hideModal(); }
+let _tt;
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'; clearTimeout(_tt); _tt=setTimeout(()=>el.className='toast',2600); }
+
+// ── DEX ─────────────────────────────────────
+function showDex(){
+  if(!G.conserved.length){
+    showModal('<h3>📋 복원 도감</h3><p>아직 복원된 종이 없어요.</p><p>장비 Lv6 + 연구원 Lv6을 합성해 서식지를 만들고 Lv6까지 합성해보세요!</p><button class="mbtn" onclick="hideModal()">닫기</button>');
+    return;
+  }
+  const gr={};
+  G.conserved.forEach(e=>{ (gr[e.chain]=gr[e.chain]||[]).push(e); });
+  let html='<h3>📋 복원 도감</h3><div class="dex-items">';
+  Object.entries(gr).forEach(([cid,list])=>{
+    const ch=CHAINS[cid];
+    html+='<div class="dex-group"><div class="dex-group-title" style="color:'+ch.color+'">'+ch.name+' ('+list.length+')</div>';
+    list.forEach(e=>{ html+='<div class="dex-entry"><span>'+e.emoji+' '+e.name+'</span><span class="dex-date">'+e.date+'</span></div>'; });
+    html+='</div>';
+  });
+  html+='</div><div class="dex-total">총 '+G.conserved.length+'종 복원 🌿</div><button class="mbtn" onclick="hideModal()">닫기</button>';
+  showModal(html);
+}
+
+// ── INIT ────────────────────────────────────
+function init(){
+  const loaded=load();
+  if(!loaded){
+    G.board[0]=mkGen('equipment');
+    G.board[6]=mkGen('researcher');
+    G.board[1]=mkItem('equipment',1);
+    G.board[7]=mkItem('researcher',1);
+    save();
+  }
+  renderBoard(); updateScoreUI(); updateEnergyUI(); updateDiamondUI(); updateLevelUI();
+  document.getElementById('chapter-label').textContent='챕터 '+G.chapter;
+  const sp=G.unlocked.filter(c=>!['equipment','researcher'].includes(c));
+  if(sp.length&&(G.quests.length===0||G.quests.every(q=>q.done))){
+    setTimeout(generateQuestBatch,500);
+  } else { renderQuests(); }
+  setInterval(updateEnergyUI, 1000);  // 에너지 카운트다운 매초 갱신
+  setInterval(()=>{ regenEnergy(); updateEnergyUI(); }, 30000);
+  initDrag();
+}
+document.addEventListener('DOMContentLoaded',init);
+
+// ── PWA Service Worker 등록 ──────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW 등록 실패',e); });
+  });
+}
+</script>
+</body>
+</html>
