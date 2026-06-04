@@ -56,8 +56,8 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 .qbtn.ready{background:var(--accent);color:#fff;}
 
 /* ── BOARD ──────────────────────────────── */
-#board-container{flex:1;overflow:hidden;padding:4px;display:flex;align-items:center;justify-content:center;min-height:0;}
-#board{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:min(100%,calc((100vh - 222px) * 0.75));max-width:420px;}
+#board-container{flex:1;overflow:hidden;padding:4px 4px 72px 4px;display:flex;align-items:flex-start;justify-content:center;min-height:0;}
+#board{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:100%;max-width:480px;}
 
 /* ── INVENTORY PANEL (모달 내부) ─────────── */
 #inv-panel{display:none;}
@@ -116,8 +116,8 @@ body{height:100%;height:100vh;width:100%;overflow:hidden;background:var(--bg);co
 .cell{aspect-ratio:1;border-radius:10px;border:2px solid transparent;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;transition:transform 0.1s,box-shadow 0.15s;touch-action:none;}
 /* 빈 칸: 반투명 어두운 박스로 위치 표시 */
 .cell-empty{background:rgba(0,0,0,0.28);border-color:rgba(255,255,255,0.07);border-radius:10px;}
-/* 채워진 칸: 배경 없음 - 아이템만 표시 */
-.cell-filled{background:transparent!important;border-color:transparent!important;}
+/* 채워진 칸: 체인 배경색 표시 */
+.cell-filled{border-radius:10px;}
 .cell-dragging{opacity:0.3;}
 /* 생산소/서식지: 약한 점선 테두리만 */
 .cell-gen{cursor:pointer;background:rgba(0,0,0,0.22)!important;border:1.5px dashed rgba(255,255,255,0.22)!important;border-radius:10px!important;}
@@ -375,16 +375,12 @@ function preloadAllImages(){
     ch.items.forEach(it=>{ if(it.img) srcs.push(it.img); });
   });
   Object.values(SPECIALS).forEach(sp=>{ if(sp.img) srcs.push(sp.img); });
-  // 상태바 아이콘
-  const statImgs=['image/에너지_1.png','image/다이아몬드_1.png'];
-  statImgs.forEach(s=>srcs.push(s));
+  ['image/에너지_1.png','image/다이아몬드_1.png'].forEach(s=>srcs.push(s));
 
-  let i=0;
-  function next(){
-    if(i>=srcs.length) return;
-    const src=srcs[i++];
+  let done=0;
+  // 모든 이미지 동시에 로딩 시작
+  srcs.forEach(src=>{
     processImg(src,(result)=>{
-      // 상태바 아이콘 즉시 DOM 업데이트
       if(src==='image/에너지_1.png'){
         const el=document.querySelector('#energy-wrap img.stat-ico');
         if(el) el.src=result;
@@ -392,11 +388,13 @@ function preloadAllImages(){
         const el=document.querySelector('#diamond-wrap img.stat-ico');
         if(el) el.src=result;
       }
-      renderBoard(); renderInventory();
-      setTimeout(next,0);
+      done++;
+      // 절반 이상 완료되면 한 번, 전부 완료되면 한 번 렌더
+      if(done===Math.ceil(srcs.length/2)||done===srcs.length){
+        renderBoard(); renderInventory();
+      }
     });
-  }
-  setTimeout(next,0);
+  });
 }
 
 // 이미지 or 이모지 HTML 반환 헬퍼
@@ -444,10 +442,10 @@ const CHAINS={
     {level:1,name:'새 알',emoji:'🥚',img:'image/조류_1.png'},{level:2,name:'부화 새끼',emoji:'🐣',img:'image/조류_2.png'},
     {level:3,name:'어린 새',emoji:'🐤',img:'image/조류_3.png'},{level:4,name:'아성조',emoji:'🐦',img:'image/조류_4.png'},
     {level:5,name:'성조',emoji:'🦅',img:'image/조류_5.png'},{level:6,name:'황새',emoji:'🦢',img:'image/조류_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'농약·밀렵·서식지 파괴',story:'1971년 한국에서 야생 황새가 완전히 사라졌습니다. 인공증식과 방사 사업으로 충남 예산에서 다시 날갯짓을 시작했어요. 행운과 복의 상징, 황새가 돌아왔습니다!'}]},
-  insect:{id:'insect',name:'곤충',chapter:3,color:'#e05050',bg:'#2c0808',items:[
-    {level:1,name:'알',emoji:'🫧'},{level:2,name:'유충',emoji:'🐛'},
-    {level:3,name:'번데기',emoji:'🫘'},{level:4,name:'우화 성충',emoji:'🦋'},
-    {level:5,name:'번식 성충',emoji:'🪲'},{level:6,name:'장수하늘소',emoji:'🦌',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 훼손·불법 채집',story:'한국에서 가장 큰 딱정벌레이자 세계적 희귀종입니다. 오래된 서어나무·신갈나무 원시림이 있어야 살 수 있어요. 멋진 뿔이 장수를 상징한다 하여 장수하늘소라 불립니다.'}]},
+  insect:{id:'insect',name:'곤충',chapter:3,color:'#e05050',bg:'#2c0808',genImg:'image/곤충_서식지.png',items:[
+    {level:1,name:'알',emoji:'🫧',img:'image/곤충_1.png'},{level:2,name:'유충',emoji:'🐛',img:'image/곤충_2.png'},
+    {level:3,name:'번데기',emoji:'🫘',img:'image/곤충_3.png'},{level:4,name:'우화 성충',emoji:'🦋',img:'image/곤충_4.png'},
+    {level:5,name:'번식 성충',emoji:'🪲',img:'image/곤충_5.png'},{level:6,name:'장수하늘소',emoji:'🦌',img:'image/곤충_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 훼손·불법 채집',story:'한국에서 가장 큰 딱정벌레이자 세계적 희귀종입니다. 오래된 서어나무·신갈나무 원시림이 있어야 살 수 있어요. 멋진 뿔이 장수를 상징한다 하여 장수하늘소라 불립니다.'}]},
   turtle:{id:'turtle',name:'거북',chapter:3,color:'#1ec09a',bg:'#0a2820',genImg:'image/거북_서식지.png',items:[
     {level:1,name:'거북 알',emoji:'🥚',img:'image/거북_1.png'},{level:2,name:'부화 새끼',emoji:'🐢',img:'image/거북_2.png'},
     {level:3,name:'어린 거북',emoji:'🐢',img:'image/거북_3.png'},{level:4,name:'아성체',emoji:'🐢',img:'image/거북_4.png'},
@@ -456,10 +454,10 @@ const CHAINS={
     {level:1,name:'뱀 알',emoji:'🥚',img:'image/뱀_1.png'},{level:2,name:'새끼 뱀',emoji:'🐍',img:'image/뱀_2.png'},
     {level:3,name:'어린 뱀',emoji:'🐍',img:'image/뱀_3.png'},{level:4,name:'아성체 뱀',emoji:'🐍',img:'image/뱀_4.png'},
     {level:5,name:'성체 뱀',emoji:'🐍',img:'image/뱀_5.png'},{level:6,name:'비바리뱀',emoji:'🐍',img:'image/뱀_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 파괴·불법 포획',story:'제주도에만 사는 한국 고유종 뱀입니다. 한라산 중산간 초원과 계곡을 삶의 터로 삼아요. 개발로 서식지가 줄어 이제는 만나기조차 어렵습니다.'}]},
-  mammal:{id:'mammal',name:'포유류',chapter:3,color:'#c06020',bg:'#280c04',items:[
-    {level:1,name:'포유류 새끼',emoji:'🐾'},{level:2,name:'어린 개체',emoji:'🐻'},
-    {level:3,name:'아성체',emoji:'🐻'},{level:4,name:'성체',emoji:'🐻'},
-    {level:5,name:'번식 성체',emoji:'🐻'},{level:6,name:'반달가슴곰',emoji:'🐼',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 단절·밀렵·도로',story:'지리산의 상징이자 한국 대형 포유류 복원의 희망입니다. 복원 사업으로 60마리 이상이 지리산을 누비고 있어요. 앞가슴의 반달 무늬가 인상적인 우리 산의 주인입니다.'}]},
+  mammal:{id:'mammal',name:'포유류',chapter:3,color:'#c06020',bg:'#280c04',genImg:'image/포유류_서식지.png',items:[
+    {level:1,name:'포유류 새끼',emoji:'🐾',img:'image/포유류_1.png'},{level:2,name:'어린 개체',emoji:'🐻',img:'image/포유류_2.png'},
+    {level:3,name:'아성체',emoji:'🐻',img:'image/포유류_3.png'},{level:4,name:'성체',emoji:'🐻',img:'image/포유류_4.png'},
+    {level:5,name:'번식 성체',emoji:'🐻',img:'image/포유류_5.png'},{level:6,name:'반달가슴곰',emoji:'🐼',img:'image/포유류_6.png',rare:true,status:'멸종위기 야생생물 I급',threat:'서식지 단절·밀렵·도로',story:'지리산의 상징이자 한국 대형 포유류 복원의 희망입니다. 복원 사업으로 60마리 이상이 지리산을 누비고 있어요. 앞가슴의 반달 무늬가 인상적인 우리 산의 주인입니다.'}]},
 };
 
 const NPCS=[
@@ -520,7 +518,7 @@ let G={
   energy:120,maxEnergy:120,lastEnergyTime:Date.now(),
   diamonds:5,level:1,xp:0,
   inventory:[],
-  invSlots:3,
+  invSlots:6,
   muted:false,
   daily:{date:'',missions:[],streak:0,claimedToday:false,mergeCount:0,questCount:0,restoreCount:0},
 };
@@ -552,7 +550,7 @@ function migrate(p){
   if(!G.lastEnergyTime) G.lastEnergyTime=Date.now();
   if(!G.questBatchCount) G.questBatchCount=0;
   if(!G.inventory) G.inventory=[];
-  if(!G.invSlots||G.invSlots<3) G.invSlots=3;
+  if(!G.invSlots||G.invSlots<6) G.invSlots=6;
   if(G.muted===undefined) G.muted=false;
   if(!G.daily||typeof G.daily!=='object') G.daily={date:'',missions:[],streak:0,claimedToday:false,mergeCount:0,questCount:0,restoreCount:0};
   if(G.daily.mergeCount===undefined) G.daily.mergeCount=0;
@@ -973,7 +971,7 @@ function onRare(chain,level){
 }
 
 // ── INVENTORY ───────────────────────────────
-var INV_MAX=10;
+var INV_MAX=15;
 const INV_UNLOCK_COST=2; // 슬롯 1칸 해금 비용 (💎)
 
 function renderInventory(){
@@ -1084,22 +1082,23 @@ function updateInvFab(){
   badge.style.display=n>0?'flex':'none';
 }
 
-// ── 생산소 탭: 1탭=정보, 2탭=생산 ──────
+// ── 생산소 탭: 1탭=선택, 이후 탭=계속 생산 ──────
 var _selectedGen=-1;
 function tapGeneratorOrInfo(idx){
   if(_selectedGen===idx){
-    // 두 번째 탭 → 생산
-    _selectedGen=-1;
-    hideItemInfo();
-    if(_cells[idx]) _cells[idx].classList.remove('cell-selected-gen');
+    // 이미 선택된 생산소 → 생산 (선택 상태 유지)
     tapGenerator(idx);
   } else {
-    // 첫 번째 탭 → 정보 표시
+    // 처음 탭 → 선택 & 정보 표시
     if(_selectedGen>=0&&_cells[_selectedGen]) _cells[_selectedGen].classList.remove('cell-selected-gen');
     _selectedGen=idx;
     if(_cells[idx]) _cells[idx].classList.add('cell-selected-gen');
     showGenInfo(idx);
   }
+}
+function deselectGen(){
+  if(_selectedGen>=0&&_cells[_selectedGen]) _cells[_selectedGen].classList.remove('cell-selected-gen');
+  _selectedGen=-1;
 }
 function showGenInfo(idx){
   var item=G.board[idx]; if(!item||!item.isGenerator) return;
@@ -1119,13 +1118,13 @@ function showGenInfo(idx){
   bar.classList.add('visible');
   bar.style.opacity='1';
   clearTimeout(_infoTimer);
-  _infoTimer=setTimeout(function(){ hideItemInfo(); _selectedGen=-1; },5000);
+  // 5초 후 정보바만 숨김 (선택 상태는 유지 → 계속 탭으로 생산 가능)
+  _infoTimer=setTimeout(function(){ var b=document.getElementById('item-info-bar'); if(b){b.classList.remove('visible');b.style.opacity='0';} },5000);
 }
 function hideItemInfo(){
   var bar=document.getElementById('item-info-bar');
   if(bar){ bar.classList.remove('visible'); bar.style.opacity='0'; }
-  if(_selectedGen>=0&&_cells[_selectedGen]) _cells[_selectedGen].classList.remove('cell-selected-gen');
-  _selectedGen=-1;
+  deselectGen();
 }
 
 // ── 아이템 정보 바 ───────────────────────
@@ -1214,8 +1213,9 @@ function onTE(e){
       return;
     }
     if(item&&item.isGenerator) tapGeneratorOrInfo(drag.fromIdx);
-    else if(item&&item.isSpecial) tapSpecial(drag.fromIdx);
-    else if(item) showItemInfo(drag.fromIdx);
+    else if(item&&item.isSpecial){ deselectGen(); tapSpecial(drag.fromIdx); }
+    else if(item){ deselectGen(); showItemInfo(drag.fromIdx); }
+    else { deselectGen(); }
   }
   drag.active=false; drag.fromIdx=null; drag.moved=false;
   setTimeout(function(){ drag.isTouch=false; },500);
@@ -1273,8 +1273,9 @@ function onME(e){
   else if(!drag.moved&&drag.fromIdx!==null){
     const item=G.board[drag.fromIdx];
     if(item&&item.isGenerator) tapGeneratorOrInfo(drag.fromIdx);
-    else if(item&&item.isSpecial) tapSpecial(drag.fromIdx);
-    else if(item) showItemInfo(drag.fromIdx);
+    else if(item&&item.isSpecial){ deselectGen(); tapSpecial(drag.fromIdx); }
+    else if(item){ deselectGen(); showItemInfo(drag.fromIdx); }
+    else { deselectGen(); }
   }
   drag.active=false; drag.fromIdx=null; drag.moved=false;
 }
